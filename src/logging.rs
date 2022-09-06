@@ -17,7 +17,7 @@ use tracing_subscriber::{
     EnvFilter, FmtSubscriber,
 };
 
-pub fn initialize() -> WorkerGuard {
+pub fn init() -> WorkerGuard {
     let formatter = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 
     let file_appender = rolling::daily("./logs", "osekai-scripts.log");

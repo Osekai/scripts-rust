@@ -17,26 +17,24 @@ impl Config {
     pub fn get() -> &'static Self {
         unsafe { CONFIG.get_unchecked() }
     }
+}
 
-    pub fn init() -> Result<()> {
-        let config = Config {
-            tokens: Tokens {
-                post: env_var("POST_KEY")?,
-            },
-        };
+pub fn init() -> Result<()> {
+    let config = Config {
+        tokens: Tokens {
+            post: env_var("POST_KEY")?,
+        },
+    };
 
-        if CONFIG.set(config).is_err() {
-            error!("`Config::init` has already been called");
-        }
-
-        Ok(())
-    }
+    CONFIG
+        .set(config)
+        .map_err(|_| eyre!("`Config::init` has already been called"))
 }
 
 trait EnvKind: Sized {
     const EXPECTED: &'static str;
 
-    fn from_str(s: &str) -> Option<Self>;
+    fn from_str(s: String) -> Result<Self, String>;
 }
 
 macro_rules! env_kind {
@@ -45,7 +43,7 @@ macro_rules! env_kind {
             impl EnvKind for $ty {
                 const EXPECTED: &'static str = stringify!($ty);
 
-                fn from_str($arg: &str) -> Option<Self> {
+                fn from_str($arg: String) -> Result<Self, String> {
                     $impl
                 }
             }
@@ -54,17 +52,17 @@ macro_rules! env_kind {
 }
 
 env_kind! {
-    u16: s => { s.parse().ok() },
-    u64: s => { s.parse().ok() },
-    PathBuf: s => { s.parse().ok() },
-    String: s => { Some(s.to_owned()) },
+    u16: s => { s.parse().map_err(|_| s) },
+    u64: s => { s.parse().map_err(|_| s) },
+    PathBuf: s => { s.parse().map_err(|_| s) },
+    String: s => { Ok(s) },
 }
 
 fn env_var<T: EnvKind>(name: &'static str) -> Result<T> {
     let value = env::var(name).with_context(|| format!("missing env variable `{name}`"))?;
 
-    T::from_str(&value).with_context(|| {
-        format!(
+    T::from_str(value).map_err(|value| {
+        eyre!(
             "failed to parse env variable `{name}={value}`; expected {expected}",
             expected = T::EXPECTED
         )

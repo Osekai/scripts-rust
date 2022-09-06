@@ -23,15 +23,15 @@ fn main() {
         .build()
         .expect("failed to build runtime");
 
-    if let Err(report) = runtime.block_on(async_main()) {
-        error!("{:?}", report.wrap_err("critical error in main"));
+    if let Err(err) = runtime.block_on(async_main()) {
+        error!("{:?}", err.wrap_err("critical error in main"));
     }
 }
 
 async fn async_main() -> Result<()> {
     dotenv::dotenv().expect("failed to parse .env");
-    let _log_worker_guard = logging::initialize();
-    Config::init().context("failed to initialize config")?;
+    let _log_worker_guard = logging::init();
+    config::init().context("failed to initialize config")?;
 
     todo!()
 }
