@@ -14,7 +14,8 @@ data example
 	"grouping": "Skill",
 	"instructions": "aiming for a combo of 500 or higher on any beatmap",
 	"ordering": 0
-}]```
+}]
+```
 
 ... etc. should be an array ob those objects, one for each meadl
 
@@ -30,7 +31,8 @@ data example
 {
 	"medalid": 2,
 	"frequency": 72.4523
-}]```
+}]
+```
 
 
 POST up_ranking.php
@@ -83,7 +85,8 @@ data example
         "replays_watched": "193",
         "avatar_url": "https://a.ppy.sh/10238680?1662021805.png"
     }
-]```
+]
+```
 should be literally every user
 
 
