@@ -1,7 +1,8 @@
 root: /rankings/api/upload/scripts-rust/
 
 
-POST up_medals.php
+### POST up_medals.php
+
 data example
 
 ```json
@@ -20,7 +21,8 @@ data example
 ... etc. should be an array ob those objects, one for each meadl
 
 
-POST up_medals_rarity.php
+### POST up_medals_rarity.php
+
 data example
 
 ```json
@@ -90,5 +92,6 @@ data example
 should be literally every user
 
 
-GET finish.php
+### GET finish.php
+
 no data, hit this when done
