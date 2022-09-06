@@ -1,8 +1,22 @@
 [package]
-name = "osekai_scripts"
+name = "osekai-scripts"
 version = "0.1.0"
+authors = ["MaxOhn <ohn.m@hotmail.de>"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+bytes = { version = "1.0" }
+dotenv = { version = "0.15" }
+eyre = { version = "0.6" }
+http = { version = "0.2" }
+hyper = { version = "0.14", default-features = false }
+hyper-rustls = { version = "0.23", default-features = false, features = ["http1", "tls12", "tokio-runtime", "webpki-tokio"] }
+once_cell = { version = "1.0" }
+rosu-v2 = { git = "https://github.com/MaxOhn/rosu-v2", branch = "next", features = ["cache"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+time = { version = "0.3", features = ["macros", "parsing"] }
+tokio = { version = "1.20", default-features = false, features = ["macros", "rt-multi-thread"] }
+tracing = { version = "0.1" }
+tracing-appender = { version = "0.2" }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt", "smallvec", "std", "time", "tracing-log"] }
