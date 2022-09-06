@@ -37,7 +37,8 @@ data example
 ```
 
 
-POST up_ranking.php
+### POST up_ranking.php
+
 data example
 ```json
 [
