@@ -1,5 +1,11 @@
-pub use self::{medal::Medal, ranking::Ranking, rarity::MedalRarity};
+pub use self::{
+    ranking::RankingUser,
+    rarity::MedalRarity,
+    scrap::{ScrapedMedal, ScrapedUser},
+    user::UserFull,
+};
 
-mod medal;
 mod ranking;
 mod rarity;
+mod scrap;
+mod user;

@@ -2,6 +2,6 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct MedalRarity {
-    medal_id: u32,
-    frequency: f64,
+    pub medal_id: u32,
+    pub frequency: f64,
 }

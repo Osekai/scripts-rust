@@ -23,7 +23,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new() -> Self {
+    pub fn new() -> Self {
         let connector = HttpsConnectorBuilder::new()
             .with_webpki_roots()
             .https_or_http()
@@ -36,7 +36,7 @@ impl Client {
     }
 
     /// Sends a GET request
-    async fn send_get_request(&self, url: impl AsRef<str>) -> Result<Bytes> {
+    pub async fn send_get_request(&self, url: impl AsRef<str>) -> Result<Bytes> {
         let url = url.as_ref();
         trace!("sending GET request to url {url}");
 
@@ -57,7 +57,7 @@ impl Client {
     }
 
     /// Sends a POST requesting containing JSON data
-    async fn send_post_request<J>(&self, url: impl AsRef<str>, data: &J) -> Result<Bytes>
+    pub async fn send_post_request<J>(&self, url: impl AsRef<str>, data: &J) -> Result<Bytes>
     where
         J: Serialize,
     {

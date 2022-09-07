@@ -7,21 +7,24 @@ extern crate eyre;
 #[macro_use]
 extern crate tracing;
 
-use config::Config;
+use context::Context;
 use eyre::{Context as _, Result};
 use tokio::runtime::Builder as RuntimeBuilder;
 
 mod client;
 mod config;
+mod context;
 mod logging;
 mod model;
 
 fn main() {
-    let runtime = RuntimeBuilder::new_multi_thread()
+    let runtime = RuntimeBuilder::new_current_thread()
         .enable_all()
-        .thread_stack_size(2 * 1024 * 1024)
         .build()
         .expect("failed to build runtime");
+
+    dotenv::dotenv().expect("failed to parse .env");
+    let _log_worker_guard = logging::init();
 
     if let Err(err) = runtime.block_on(async_main()) {
         error!("{:?}", err.wrap_err("critical error in main"));
@@ -29,9 +32,14 @@ fn main() {
 }
 
 async fn async_main() -> Result<()> {
-    dotenv::dotenv().expect("failed to parse .env");
-    let _log_worker_guard = logging::init();
     config::init().context("failed to initialize config")?;
 
-    todo!()
+    let ctx = Context::new().await.context("failed to create context")?;
+
+    // Never stops
+    ctx.run().await;
+
+    info!("Shutting down");
+
+    Ok(())
 }

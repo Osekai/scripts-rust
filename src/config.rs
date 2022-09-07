@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf};
 
-use eyre::{Context as _, ContextCompat as _, Result};
+use eyre::{Context as _, Result};
 use once_cell::sync::OnceCell;
 
 static CONFIG: OnceCell<Config> = OnceCell::new();
@@ -11,6 +11,8 @@ pub struct Config {
 
 pub struct Tokens {
     pub post: String,
+    pub osu_client_id: u64,
+    pub osu_client_secret: String,
 }
 
 impl Config {
@@ -23,6 +25,8 @@ pub fn init() -> Result<()> {
     let config = Config {
         tokens: Tokens {
             post: env_var("POST_KEY")?,
+            osu_client_id: env_var("OSU_CLIENT_ID")?,
+            osu_client_secret: env_var("OSU_CLIENT_SECRET")?,
         },
     };
 
