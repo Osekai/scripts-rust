@@ -1,3 +1,5 @@
+use std::fs;
+
 use ::bytes::Bytes;
 use eyre::{Context as _, Result};
 use http::{header::CONTENT_LENGTH, Response};
@@ -9,7 +11,10 @@ use hyper::{
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use serde::Serialize;
 
-use crate::config::Config;
+use crate::{
+    config::Config,
+    model::{MedalRarity, RankingUser, ScrapedMedal},
+};
 
 use self::{bytes::BodyBytes, multipart::Multipart};
 
@@ -37,8 +42,50 @@ impl Client {
         Self { client }
     }
 
-    /// Sends a GET request
-    pub async fn send_get_request(&self, url: impl AsRef<str>) -> Result<Bytes> {
+    /// Requests peppy's webpage and returns its bytes
+    pub async fn get_user_webpage(&self) -> Result<Vec<u8>> {
+        // Avoid request spamming while debugging
+        if cfg!(debug_assertion) {
+            fs::read("./peppy.html").context("failed to read `./peppy.html`")
+        } else {
+            let url = "https://osu.ppy.sh/users/peppy/osu";
+
+            let bytes = self
+                .send_get_request(url)
+                .await
+                .context("failed to request user webpage")?;
+
+            // fs::write("./peppy.html", &bytes).unwrap();
+
+            Ok(bytes.into())
+        }
+    }
+
+    pub async fn upload_medals(&self, medals: &[ScrapedMedal]) -> Result<Bytes> {
+        let url = format!("{base}up_medals.php", base = Config::get().url_base);
+
+        self.send_post_request(&url, &medals).await
+    }
+
+    pub async fn upload_rarity(&self, rarity: &[MedalRarity]) -> Result<Bytes> {
+        let url = format!("{base}up_medals_rarity.php", base = Config::get().url_base);
+
+        self.send_post_request(&url, &rarity).await
+    }
+
+    pub async fn upload_ranking(&self, ranking: &[RankingUser]) -> Result<Bytes> {
+        let url = format!("{base}up_ranking.php", base = Config::get().url_base);
+
+        self.send_post_request(&url, &ranking).await
+    }
+
+    pub async fn finish_uploading(&self) -> Result<Bytes> {
+        let url = format!("{base}finish.php", base = Config::get().url_base);
+
+        self.send_get_request(&url).await
+    }
+
+    async fn send_get_request(&self, url: impl AsRef<str>) -> Result<Bytes> {
         let url = url.as_ref();
         trace!("sending GET request to url {url}");
 
@@ -58,8 +105,7 @@ impl Client {
         Self::error_for_status(response, url).await
     }
 
-    /// Sends a POST requesting containing JSON data
-    pub async fn send_post_request<J>(&self, url: impl AsRef<str>, data: &J) -> Result<Bytes>
+    async fn send_post_request<J>(&self, url: impl AsRef<str>, data: &J) -> Result<Bytes>
     where
         J: Serialize,
     {

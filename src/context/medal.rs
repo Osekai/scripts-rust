@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, string::FromUtf8Error};
+use std::{collections::HashMap, string::FromUtf8Error};
 
 use crate::model::{MedalRarity, ScrapedMedal, ScrapedUser, UserFull};
 
@@ -9,22 +9,11 @@ use scraper::{Html, Selector};
 
 impl Context {
     pub async fn gather_medals(&self) -> Result<Vec<ScrapedMedal>> {
-        // Avoid request spamming while debugging
-        let bytes = if cfg!(debug_assertion) {
-            fs::read("./peppy.html").context("failed to read `./peppy.html`")?
-        } else {
-            let url = "https://osu.ppy.sh/users/peppy/osu";
-
-            let bytes = self
-                .client
-                .send_get_request(url)
-                .await
-                .context("failed to request user to gather medals")?;
-
-            // fs::write("./peppy.html", &bytes).unwrap();
-
-            bytes.into()
-        };
+        let bytes = self
+            .client
+            .get_user_webpage()
+            .await
+            .context("failed to get user to gather medals")?;
 
         let html_str = String::from_utf8(bytes)
             .map_err(FromUtf8Error::into_bytes)

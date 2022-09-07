@@ -1,12 +1,14 @@
 use std::{env, path::PathBuf};
 
 use eyre::{Context as _, Result};
+use http::Uri;
 use once_cell::sync::OnceCell;
 
 static CONFIG: OnceCell<Config> = OnceCell::new();
 
 pub struct Config {
     pub tokens: Tokens,
+    pub url_base: Uri,
 }
 
 pub struct Tokens {
@@ -28,6 +30,7 @@ pub fn init() -> Result<()> {
             osu_client_id: env_var("OSU_CLIENT_ID")?,
             osu_client_secret: env_var("OSU_CLIENT_SECRET")?,
         },
+        url_base: env_var("URL_BASE")?,
     };
 
     CONFIG
@@ -60,6 +63,7 @@ env_kind! {
     u64: s => { s.parse().map_err(|_| s) },
     PathBuf: s => { s.parse().map_err(|_| s) },
     String: s => { Ok(s) },
+    Uri: s => { s.parse().map_err(|_| s) },
 }
 
 fn env_var<T: EnvKind>(name: &'static str) -> Result<T> {

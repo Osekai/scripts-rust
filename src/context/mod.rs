@@ -46,28 +46,42 @@ impl Context {
 
             match self.gather_medals().await {
                 Ok(medals) => {
-                    // TODO: upload medals
+                    match self.client.upload_medals(&medals).await {
+                        Ok(_) => info!("Successfully uploaded medals"),
+                        Err(err) => error!("{:?}", err.wrap_err("failed to upload medals")),
+                    }
 
                     let rarities = Self::calculate_medal_rarity(&users, &medals);
 
-                    // TODO: upload rarities
+                    match self.client.upload_rarity(&rarities).await {
+                        Ok(_) => info!("Successfully uploaded medal rarities"),
+                        Err(err) => error!("{:?}", err.wrap_err("failed to upload medal rarities")),
+                    }
                 }
                 Err(err) => error!("{:?}", err.wrap_err("failed to gather medals")),
             }
 
             match self.gather_rarities().await {
                 Ok(rarities) => {
-                    let users: Vec<_> = users
+                    let ranking: Vec<_> = users
                         .into_iter()
                         .map(|user| RankingUser::new(user, &rarities))
                         .collect();
 
-                    // TODO: upload users
+                    match self.client.upload_ranking(&ranking).await {
+                        Ok(_) => info!("Successfully uploaded ranking"),
+                        Err(err) => error!("{:?}", err.wrap_err("failed to upload ranking")),
+                    }
                 }
                 Err(err) => error!("{:?}", err.wrap_err("failed to gather rarities")),
             }
 
             // TODO: badges
+
+            match self.client.finish_uploading().await {
+                Ok(_) => info!("Successfully finished uploading"),
+                Err(err) => error!("{:?}", err.wrap_err("failed to finish uploading")),
+            }
         }
     }
 }

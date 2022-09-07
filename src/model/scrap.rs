@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct ScrapedUser {
@@ -6,7 +6,7 @@ pub struct ScrapedUser {
     pub medals: Vec<ScrapedMedal>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ScrapedMedal {
     #[serde(rename(serialize = "link"))]
     pub icon_url: String,
