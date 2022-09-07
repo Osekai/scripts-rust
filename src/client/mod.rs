@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use crate::{
     config::Config,
-    model::{MedalRarity, RankingUser, ScrapedMedal},
+    model::{Badge, MedalRarity, RankingUser, ScrapedMedal},
 };
 
 use self::{bytes::BodyBytes, multipart::Multipart};
@@ -77,6 +77,12 @@ impl Client {
         let url = format!("{base}up_ranking.php", base = Config::get().url_base);
 
         self.send_post_request(&url, &ranking).await
+    }
+
+    pub async fn upload_badges(&self, badges: &[Badge]) -> Result<Bytes> {
+        let url = format!("{base}up_badges.php", base = Config::get().url_base);
+
+        self.send_post_request(&url, &badges).await
     }
 
     pub async fn finish_uploading(&self) -> Result<Bytes> {

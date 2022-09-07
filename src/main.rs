@@ -36,8 +36,8 @@ async fn async_main() -> Result<()> {
 
     let ctx = Context::new().await.context("failed to create context")?;
 
-    // Never stops
-    ctx.run().await;
+    // Runs forever
+    Context::run(ctx).await;
 
     info!("Shutting down");
 

@@ -1,12 +1,16 @@
 use std::{cmp::Ordering, collections::HashMap};
 
-use rosu_v2::prelude::{MedalCompact, User};
+use rosu_v2::prelude::{Badge, MedalCompact, User};
 
 pub struct UserFull {
     pub(super) inner: [User; 4],
 }
 
 impl UserFull {
+    pub fn badges_mut(&mut self) -> Option<&mut [Badge]> {
+        self.inner[0].badges.as_deref_mut()
+    }
+
     pub fn medals(&self) -> Option<&[MedalCompact]> {
         self.inner[0].medals.as_deref()
     }

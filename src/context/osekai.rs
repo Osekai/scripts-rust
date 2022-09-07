@@ -1,11 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::model::Badge;
+
 use super::Context;
 
 use eyre::Result;
 
 impl Context {
-    pub async fn gather_badges(&self) -> Result<Vec<()>> {
+    pub async fn gather_badges(&self) -> Result<Vec<Badge>> {
         todo!()
     }
 
