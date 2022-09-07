@@ -27,21 +27,18 @@ impl Context {
             .find_map(|div| div.value().attr("data-initial-data"))
             .context("missing div with attribute `data-initial-data`")?;
 
-        let deserialized: ScrapedUser = serde_json::from_str(&data)
+        let deserialized: ScrapedUser = serde_json::from_str(data)
             .with_context(|| format!("failed to deserialize scraped data: {data}"))?;
 
         Ok(deserialized.medals)
     }
 
     pub fn calculate_medal_rarity(users: &[UserFull], medals: &[ScrapedMedal]) -> Vec<MedalRarity> {
-        let mut counts = users.iter().filter_map(UserFull::medals).flatten().fold(
-            HashMap::<_, u32, IntHasher>::with_capacity_and_hasher(200, IntHasher),
-            |mut counts, medal| {
-                *counts.entry(medal.medal_id).or_default() += 1;
+        let mut counts = HashMap::with_capacity_and_hasher(200, IntHasher);
 
-                counts
-            },
-        );
+        for medal in users.iter().filter_map(UserFull::medals).flatten() {
+            *counts.entry(medal.medal_id).or_default() += 1_u32;
+        }
 
         for medal in medals {
             counts.entry(medal.id).or_insert(0);

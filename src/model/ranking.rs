@@ -33,7 +33,7 @@ impl RankingUser {
     pub fn new(user: UserFull, rarities: &HashMap<u32, f64, IntHasher>) -> Self {
         let total_pp = user.total_pp();
         let stdev_pp = user.std_dev_pp();
-        let rarest_medal_id = user.rarest_medal_id(&rarities);
+        let rarest_medal_id = user.rarest_medal_id(rarities);
 
         let [std, tko, ctb, mna] = user.inner;
 
