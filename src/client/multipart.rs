@@ -20,7 +20,7 @@ impl Multipart {
             .collect();
 
         Self {
-            bytes: Vec::with_capacity(1_048_576),
+            bytes: Vec::with_capacity(16_384),
             boundary,
         }
     }
@@ -30,7 +30,7 @@ impl Multipart {
         K: Display,
         V: Display,
     {
-        self.write_field_headers(key, None, None);
+        self.write_field_headers(key, None);
         let _ = write!(self.bytes, "{value}");
 
         self
@@ -41,8 +41,7 @@ impl Multipart {
         K: Display,
         J: Serialize,
     {
-        self.write_field_headers(key, None, Some("application/json"));
-
+        self.write_field_headers(key, Some("application/json"));
         serde_json::to_writer(&mut self.bytes, data).context("failed to serialize data")?;
 
         Ok(self)
@@ -66,12 +65,7 @@ impl Multipart {
         self.bytes.is_empty()
     }
 
-    fn write_field_headers(
-        &mut self,
-        name: impl Display,
-        filename: Option<&str>,
-        content_type: Option<&str>,
-    ) {
+    fn write_field_headers(&mut self, name: impl Display, content_type: Option<&str>) {
         if !self.is_empty() {
             self.bytes.extend_from_slice(b"\r\n");
         }
@@ -82,10 +76,6 @@ impl Multipart {
             self.bytes,
             "Content-Disposition: form-data; name=\"{name}\""
         );
-
-        if let Some(filename) = filename {
-            let _ = write!(self.bytes, "; filename=\"{filename}\"");
-        }
 
         if let Some(content_type) = content_type {
             let _ = write!(self.bytes, "\r\nContent-Type: {content_type}");
