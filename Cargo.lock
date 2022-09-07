@@ -588,6 +588,7 @@ dependencies = [
  "hyper",
  "hyper-rustls",
  "once_cell",
+ "rand 0.8.5",
  "rosu-v2",
  "scraper",
  "serde",

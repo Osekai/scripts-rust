@@ -9,9 +9,12 @@ use hyper::{
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use serde::Serialize;
 
-use self::bytes::BodyBytes;
+use crate::config::Config;
+
+use self::{bytes::BodyBytes, multipart::Multipart};
 
 mod bytes;
+mod multipart;
 
 static MY_USER_AGENT: &str = env!("CARGO_PKG_NAME");
 
@@ -19,7 +22,6 @@ type InnerClient = HyperClient<HttpsConnector<HttpConnector<GaiResolver>>, BodyB
 
 pub struct Client {
     client: InnerClient,
-    // ratelimiters: [LeakyBucket; 0],
 }
 
 impl Client {
@@ -64,15 +66,21 @@ impl Client {
         let url = url.as_ref();
         trace!("sending POST request to url {url}");
 
-        let data = serde_json::to_vec(data).context("failed to serialize data")?;
+        let form = Multipart::new()
+            .push_text("key", &Config::get().tokens.post)
+            .push_json("data", data)
+            .context("failed to push json onto multipart")?;
+
+        let content_type = format!("multipart/form-data; boundary={}", form.boundary());
+        let form = BodyBytes::from(form);
 
         let req = Request::builder()
             .method(Method::POST)
             .uri(url)
             .header(USER_AGENT, MY_USER_AGENT)
-            .header(CONTENT_TYPE, "application/json")
-            .header(CONTENT_LENGTH, data.len())
-            .body(data.into())
+            .header(CONTENT_TYPE, content_type)
+            .header(CONTENT_LENGTH, form.len())
+            .body(form)
             .context("failed to build POST request")?;
 
         let response = self

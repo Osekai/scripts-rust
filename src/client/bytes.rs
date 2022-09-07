@@ -9,15 +9,17 @@ use bytes::Bytes;
 use http::HeaderMap;
 use hyper::body::{HttpBody, SizeHint};
 
+use super::multipart::Multipart;
+
 #[derive(Clone, Default)]
 pub struct BodyBytes(Bytes);
 
 impl BodyBytes {
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.0.len()
     }
 }
@@ -63,5 +65,12 @@ impl From<Vec<u8>> for BodyBytes {
     #[inline]
     fn from(bytes: Vec<u8>) -> Self {
         Self(bytes.into())
+    }
+}
+
+impl From<Multipart> for BodyBytes {
+    #[inline]
+    fn from(form: Multipart) -> Self {
+        Self(form.finish().into())
     }
 }
