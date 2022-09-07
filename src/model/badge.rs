@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use serde::{Serialize, Serializer};
 use time::OffsetDateTime;
 
@@ -5,7 +7,7 @@ use time::OffsetDateTime;
 pub struct Badge {
     #[serde(serialize_with = "serialize_datetime")]
     pub awarded_at: OffsetDateTime,
-    pub description: String,
+    pub description: Rc<String>,
     pub users: Vec<u32>,
     pub image_url: String,
     pub url: String,

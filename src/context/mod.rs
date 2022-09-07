@@ -1,4 +1,8 @@
-use std::{collections::HashSet, mem};
+use std::{
+    collections::{HashMap, HashSet},
+    mem,
+    rc::Rc,
+};
 
 use eyre::{Context as _, Result};
 use rosu_v2::Osu;
@@ -53,7 +57,7 @@ impl Context {
                 Err(err) => {
                     error!("{:?}", err.wrap_err("failed to gather badges"));
 
-                    (Vec::new(), false)
+                    (HashMap::new(), false)
                 }
             };
 
@@ -76,15 +80,14 @@ impl Context {
                     for user_badge in user_badges {
                         // Skip if the badge is already known as well as the fact that the user owns it
                         let already_known = all_badges
-                            .iter()
-                            .find(|badge| badge.description == user_badge.description)
+                            .get(&user_badge.description)
                             .filter(|badge| badge.users.contains(&user_id))
                             .is_some();
 
                         // Skip if the badge was already pushed to new_badges
                         let already_added = new_badges
                             .iter_mut()
-                            .find(|badge| badge.description == user_badge.description)
+                            .find(|badge| *badge.description == user_badge.description)
                             .map(|badge| {
                                 if badge.awarded_at > user_badge.awarded_at {
                                     badge.awarded_at = user_badge.awarded_at;
@@ -98,7 +101,7 @@ impl Context {
                             let badge = Badge {
                                 users: vec![user_id],
                                 awarded_at: user_badge.awarded_at,
-                                description: mem::take(&mut user_badge.description),
+                                description: Rc::new(mem::take(&mut user_badge.description)),
                                 image_url: mem::take(&mut user_badge.image_url),
                                 url: mem::take(&mut user_badge.url),
                             };
