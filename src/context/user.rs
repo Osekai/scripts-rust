@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use eyre::{Context as _, Result};
 use rosu_v2::prelude::GameMode;
 
@@ -16,5 +18,34 @@ impl Context {
             .map(|(osu, tko, ctb, mna)| [osu, tko, ctb, mna])
             .map(UserFull::from)
             .context("failed to get user from osu!api")
+    }
+
+    /// Makes 800 requests to the osu!api, very expensive call!
+    pub async fn get_leaderboard_user_ids(&self) -> Result<HashSet<u32>> {
+        let modes = [
+            GameMode::Osu,
+            GameMode::Taiko,
+            GameMode::Catch,
+            GameMode::Mania,
+        ];
+
+        let mut user_ids = HashSet::with_capacity(30_000);
+
+        for mode in modes {
+            for page in 1..=200 {
+                let rankings = self
+                    .osu
+                    .performance_rankings(mode)
+                    .page(page)
+                    .await
+                    .with_context(|| {
+                        format!("failed to retrieve leaderboard page {page} for {mode:?}")
+                    })?;
+
+                user_ids.extend(rankings.ranking.into_iter().map(|user| user.user_id));
+            }
+        }
+
+        Ok(user_ids)
     }
 }

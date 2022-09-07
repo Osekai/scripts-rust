@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::Context;
 
@@ -9,7 +9,7 @@ impl Context {
         todo!()
     }
 
-    pub async fn gather_users(&self) -> Result<Vec<u32>> {
+    pub async fn gather_more_users(&self, users: &mut HashSet<u32>) -> Result<()> {
         todo!()
     }
 

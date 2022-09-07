@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use eyre::{Context as _, Result};
 use rosu_v2::Osu;
 
@@ -30,7 +32,19 @@ impl Context {
     pub async fn run(self) {
         loop {
             let all_badges = self.gather_badges().await.expect("TODO");
-            let user_ids = self.gather_users().await.expect("TODO");
+
+            let mut user_ids = match self.get_leaderboard_user_ids().await {
+                Ok(user_ids) => user_ids,
+                Err(err) => {
+                    error!("{:?}", err.wrap_err("failed to get leaderboard users"));
+
+                    HashSet::new()
+                }
+            };
+
+            if let Err(err) = self.gather_more_users(&mut user_ids).await {
+                error!("{:?}", err.wrap_err("failed to gather more users"));
+            }
 
             let mut users = Vec::with_capacity(user_ids.len());
 
