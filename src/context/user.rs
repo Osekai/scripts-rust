@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use eyre::{Context as _, Result};
 use rosu_v2::prelude::GameMode;
 
-use crate::model::UserFull;
+use crate::model::{IntHasher, UserFull};
 
 use super::Context;
 
@@ -21,7 +21,7 @@ impl Context {
     }
 
     /// Makes 800 requests to the osu!api, very expensive call!
-    pub async fn get_leaderboard_user_ids(&self) -> Result<HashSet<u32>> {
+    pub async fn get_leaderboard_user_ids(&self) -> Result<HashSet<u32, IntHasher>> {
         let modes = [
             GameMode::Osu,
             GameMode::Taiko,
@@ -29,7 +29,7 @@ impl Context {
             GameMode::Mania,
         ];
 
-        let mut user_ids = HashSet::with_capacity(30_000);
+        let mut user_ids = HashSet::with_capacity_and_hasher(30_000, IntHasher);
 
         for mode in modes {
             for page in 1..=200 {

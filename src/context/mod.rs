@@ -10,7 +10,7 @@ use rosu_v2::Osu;
 use crate::{
     client::Client,
     config::Config,
-    model::{Badge, RankingUser},
+    model::{Badge, IntHasher, RankingUser},
 };
 
 mod medal;
@@ -44,7 +44,7 @@ impl Context {
                 Err(err) => {
                     error!("{:?}", err.wrap_err("failed to get leaderboard users"));
 
-                    HashSet::new()
+                    HashSet::with_hasher(IntHasher)
                 }
             };
 

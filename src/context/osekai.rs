@@ -3,7 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::model::Badge;
+use crate::model::{Badge, IntHasher};
 
 use super::Context;
 
@@ -14,11 +14,11 @@ impl Context {
         todo!()
     }
 
-    pub async fn gather_more_users(&self, users: &mut HashSet<u32>) -> Result<()> {
+    pub async fn gather_more_users(&self, users: &mut HashSet<u32, IntHasher>) -> Result<()> {
         todo!()
     }
 
-    pub async fn gather_rarities(&self) -> Result<HashMap<u32, f64>> {
+    pub async fn gather_rarities(&self) -> Result<HashMap<u32, f64, IntHasher>> {
         todo!()
     }
 }

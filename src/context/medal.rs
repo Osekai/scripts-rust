@@ -1,6 +1,6 @@
 use std::{collections::HashMap, string::FromUtf8Error};
 
-use crate::model::{MedalRarity, ScrapedMedal, ScrapedUser, UserFull};
+use crate::model::{IntHasher, MedalRarity, ScrapedMedal, ScrapedUser, UserFull};
 
 use super::Context;
 
@@ -35,7 +35,7 @@ impl Context {
 
     pub fn calculate_medal_rarity(users: &[UserFull], medals: &[ScrapedMedal]) -> Vec<MedalRarity> {
         let mut counts = users.iter().filter_map(UserFull::medals).flatten().fold(
-            HashMap::<_, u32>::with_capacity(200),
+            HashMap::<_, u32, IntHasher>::with_capacity_and_hasher(200, IntHasher),
             |mut counts, medal| {
                 *counts.entry(medal.medal_id).or_default() += 1;
 

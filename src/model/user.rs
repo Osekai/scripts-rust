@@ -2,6 +2,8 @@ use std::{cmp::Ordering, collections::HashMap};
 
 use rosu_v2::prelude::{Badge, MedalCompact, User};
 
+use super::IntHasher;
+
 pub struct UserFull {
     pub(super) inner: [User; 4],
 }
@@ -15,7 +17,7 @@ impl UserFull {
         self.inner[0].medals.as_deref()
     }
 
-    pub fn rarest_medal_id(&self, rarities: &HashMap<u32, f64>) -> Option<u32> {
+    pub fn rarest_medal_id(&self, rarities: &HashMap<u32, f64, IntHasher>) -> Option<u32> {
         self.medals()?
             .iter()
             .flat_map(|medal| Some((medal.medal_id, *rarities.get(&medal.medal_id)?)))

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
-use super::UserFull;
+use super::{IntHasher, UserFull};
 
 #[derive(Serialize)]
 pub struct RankingUser {
@@ -30,7 +30,7 @@ pub struct RankingUser {
 }
 
 impl RankingUser {
-    pub fn new(user: UserFull, rarities: &HashMap<u32, f64>) -> Self {
+    pub fn new(user: UserFull, rarities: &HashMap<u32, f64, IntHasher>) -> Self {
         let total_pp = user.total_pp();
         let stdev_pp = user.std_dev_pp();
         let rarest_medal_id = user.rarest_medal_id(&rarities);
