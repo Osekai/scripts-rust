@@ -17,7 +17,7 @@ use tracing_subscriber::{
     EnvFilter, FmtSubscriber,
 };
 
-pub fn init() -> WorkerGuard {
+pub fn init(quiet: bool) -> WorkerGuard {
     let formatter = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 
     let file_appender = rolling::daily("./logs", "osekai-scripts.log");
@@ -27,8 +27,14 @@ pub fn init() -> WorkerGuard {
         .event_format(FileEventFormat::new(formatter))
         .with_writer(file_writer);
 
+    let filter = if quiet {
+        EnvFilter::default()
+    } else {
+        EnvFilter::from_default_env()
+    };
+
     let subscriber = FmtSubscriber::builder()
-        .with_env_filter(EnvFilter::from_default_env())
+        .with_env_filter(filter)
         .with_target(false)
         .with_timer(UtcTime::new(formatter))
         .finish()

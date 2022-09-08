@@ -35,6 +35,9 @@ pub struct Args {
     #[clap(short, long, default_value_t = 12)]
     /// Hours inbetween two tasks
     interval: u64,
+    #[clap(short, long, action)]
+    /// Set this if no logs should be displayed
+    quiet: bool,
     #[clap(short, long)]
     /// Specific task to be run only once
     task: Option<Task>,
@@ -52,8 +55,6 @@ fn main() {
             Be sure there is one in the same folder as this executable."
         );
     }
-
-    let _log_worker_guard = logging::init();
 
     if let Err(err) = runtime.block_on(async_main()) {
         error!("{:?}", err.wrap_err("Critical error in main"));
@@ -84,8 +85,9 @@ Task values:
   - full: medals | rarity | ranking | badges | leaderboard"#;
 
 async fn async_main() -> Result<()> {
-    config::init().context("failed to initialize config")?;
     let args = Args::parse();
+    let _log_worker_guard = logging::init(args.quiet);
+    config::init().context("failed to initialize config")?;
 
     let ctx = Context::new().await.context("failed to create context")?;
 
