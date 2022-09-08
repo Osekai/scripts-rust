@@ -16,7 +16,6 @@ impl Task {
     pub const BADGES: Self =       Self(1 << 2);
     pub const RARITY: Self =       Self(1 << 3);
     pub const RANKING: Self =      Self(1 << 4);
-    pub const EXTRA_BADGES: Self = Self(1 << 5);
 
     pub const DEFAULT: Self =
         Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RARITY.0 | Self::RANKING.0);
@@ -54,10 +53,6 @@ impl Task {
 
     pub fn ranking(self) -> bool {
         self.contains(Self::RANKING)
-    }
-
-    pub fn extra_badges(self) -> bool {
-        self.contains(Self::EXTRA_BADGES)
     }
 }
 
@@ -122,17 +117,6 @@ impl Display for Task {
             }
 
             f.write_str("Ranking")?;
-            found = true;
-            task.remove(Self::RANKING);
-        }
-
-        if task.contains(Self::EXTRA_BADGES) {
-            if found {
-                f.write_str(" | ")?;
-            }
-
-            f.write_str("ExtraBadges")?;
-            task.remove(Self::EXTRA_BADGES);
         }
 
         Ok(())
@@ -155,11 +139,10 @@ impl FromStr for Task {
                 "rarity" | "rarities" => Ok(res | Self::RARITY),
                 "ranking" => Ok(res | Self::RANKING),
                 "badge" | "badges" => Ok(res | Self::BADGES),
-                "extra" | "extra badges" | "extra_badges" => Ok(res | Self::EXTRA_BADGES),
                 _ => {
                     let msg = format!(
                         "failed to parse task `{s}`; must be a `|`-separated list of the following: \
-                        default, full, medal, leaderboard, rarity, badge, extra"
+                        default, full, medal, leaderboard, rarity, badge"
                     );
 
                     Err(Report::msg(msg))

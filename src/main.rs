@@ -1,5 +1,4 @@
-#![deny(clippy::all, nonstandard_style, rust_2018_idioms, warnings)]
-#![allow(unused)] // TODO: remove
+#![deny(clippy::all, nonstandard_style, rust_2018_idioms, unused, warnings)]
 #![cfg_attr(feature = "generate", allow(unused))]
 
 #[macro_use]
@@ -27,13 +26,16 @@ mod util;
 #[derive(Parser)]
 #[clap(author, about = DESCRIPTION)]
 pub struct Args {
-    #[clap(short, long, value_parser, default_value_t = 12)]
-    /// Hours inbetween two tasks
-    interval: u64,
-    #[clap(long, value_parser)]
+    #[clap(short, long)]
+    /// Additional user id to check (repeatable)
+    extra: Vec<u32>,
+    #[clap(long)]
     /// Minutes until the first task is started
     initial_delay: Option<u64>,
-    #[clap(short, long, value_parser)]
+    #[clap(short, long, default_value_t = 12)]
+    /// Hours inbetween two tasks
+    interval: u64,
+    #[clap(short, long)]
     /// Specific task to be run only once
     task: Option<Task>,
 }
@@ -73,7 +75,7 @@ async fn async_main() -> Result<()> {
     if let Some(task) = args.task {
         let delay = args.initial_delay.unwrap_or(0);
 
-        ctx.run_once(task, delay).await;
+        ctx.run_once(task, delay, &args.extra).await;
     } else {
         tokio::select! {
             _ = ctx.loop_forever(args) => unreachable!(),

@@ -39,7 +39,7 @@ impl Context {
         Ok(Self { client, osu })
     }
 
-    pub async fn run_once(self, task: Task, delay: u64) {
+    pub async fn run_once(self, task: Task, delay: u64, extras: &[u32]) {
         info!("Arguments:");
         info!("  - Run a single task: {task}");
         info!("  - The task will start in {delay} minute(s)");
@@ -50,7 +50,7 @@ impl Context {
             sleep(duration).await;
         }
 
-        self.iteration(task).await;
+        self.iteration(task, extras).await;
 
         info!("Finished task {task}");
     }
@@ -88,7 +88,7 @@ impl Context {
             interval.tick().await;
             let start = Instant::now();
 
-            self.iteration(task).await;
+            self.iteration(task, &args.extra).await;
 
             let end = Instant::now();
             let next = interval.period() - (end - start);
@@ -97,10 +97,10 @@ impl Context {
         }
     }
 
-    async fn iteration(&self, task: Task) {
+    async fn iteration(&self, task: Task, extras: &[u32]) {
         info!("Starting task `{task}`");
 
-        let (users, badges) = self.gather_users_and_badges(task).await;
+        let (users, badges) = self.gather_users_and_badges(task, extras).await;
 
         if !badges.is_empty() && task.badges() {
             match self.client.upload_badges(&badges).await {
@@ -130,7 +130,7 @@ impl Context {
     }
 
     #[cfg(not(feature = "generate"))]
-    async fn gather_users_and_badges(&self, task: Task) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, task: Task, extras: &[u32]) -> (Vec<UserFull>, Badges) {
         let mut user_ids = if task.leaderboard() {
             match self.request_leaderboards().await {
                 Ok(user_ids) => user_ids,
@@ -149,6 +149,8 @@ impl Context {
                 error!("{:?}", err.wrap_err("Failed to gather more users"));
             }
         }
+
+        user_ids.extend(extras);
 
         let check_badges = task.badges();
         let len = user_ids.len();
@@ -186,7 +188,7 @@ impl Context {
     }
 
     #[cfg(feature = "generate")]
-    async fn gather_users_and_badges(&self, _task: Task) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, _: Task, _: &[u32]) -> (Vec<UserFull>, Badges) {
         debug!("Start generating users...");
 
         let mut rng = rand::thread_rng();
