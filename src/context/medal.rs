@@ -40,7 +40,7 @@ impl Context {
         let mut counts = HashMap::with_capacity_and_hasher(200, IntHasher);
 
         for medal in users.iter().filter_map(UserFull::medals).flatten() {
-            *counts.entry(medal.medal_id).or_default() += 1_u32;
+            *counts.entry(medal.medal_id).or_default() += 1;
         }
 
         for medal in medals {
@@ -51,9 +51,10 @@ impl Context {
 
         counts
             .into_iter()
-            .map(|(medal_id, count)| MedalRarity {
+            .map(|(medal_id, total)| MedalRarity {
                 medal_id,
-                frequency: (100 * count) as f64 / user_count,
+                total,
+                frequency: (100 * total) as f64 / user_count,
             })
             .collect()
     }
