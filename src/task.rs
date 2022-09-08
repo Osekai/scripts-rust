@@ -35,22 +35,28 @@ impl Task {
         Self(0)
     }
 
+    /// Should all medals be retrieved and uploaded?
     pub fn medals(self) -> bool {
         self.contains(Self::MEDALS)
     }
 
+    /// Should the top 10k users for all modes be requested?
     pub fn leaderboard(self) -> bool {
         self.contains(Self::LEADERBOARD)
     }
 
+    /// Should badges be processed and uploaded?
     pub fn badges(self) -> bool {
         self.contains(Self::BADGES)
     }
 
+    /// Should medal rarities be calculated and uploaded?
     pub fn rarity(self) -> bool {
         self.contains(Self::RARITY)
     }
 
+    /// Should medal rarities be calculated and used
+    /// to process and upload user data?
     pub fn ranking(self) -> bool {
         self.contains(Self::RANKING)
     }

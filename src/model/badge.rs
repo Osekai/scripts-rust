@@ -53,6 +53,7 @@ impl Badges {
 }
 
 impl Serialize for Badges {
+    #[inline]
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut s = s.serialize_seq(Some(self.inner.len()))?;
 
@@ -77,6 +78,7 @@ impl<'b> BorrowedBadge<'b> {
 }
 
 impl Serialize for BorrowedBadge<'_> {
+    #[inline]
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut s = s.serialize_map(Some(5))?;
 

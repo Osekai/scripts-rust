@@ -36,6 +36,7 @@ impl Context {
         Ok(deserialized.medals)
     }
 
+    /// Calculate each medal's rarity i.e. how many users obtained it
     pub fn calculate_rarities(users: &[UserFull], medals: &[ScrapedMedal]) -> MedalRarities {
         let mut counts = HashMap::with_capacity_and_hasher(200, IntHasher);
 
@@ -43,6 +44,7 @@ impl Context {
             *counts.entry(medal.medal_id).or_default() += 1;
         }
 
+        // In case no user owns the medal yet, still add it as an entry
         for medal in medals {
             counts.entry(medal.id).or_insert(0);
         }

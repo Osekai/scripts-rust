@@ -13,10 +13,12 @@ use time::{Date, OffsetDateTime};
 
 use crate::model::UserFull;
 
+/// Generate a random instance of a type
 pub trait Generate {
     fn generate<R: Rng>(rng: &mut R) -> Self;
 }
 
+/// Generate random instances of a type
 pub trait GenerateRange {
     fn generate_range<R: Rng>(rng: &mut R, range: Range<usize>) -> Self;
 }

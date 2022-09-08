@@ -25,6 +25,7 @@ static MY_USER_AGENT: &str = env!("CARGO_PKG_NAME");
 
 type InnerClient = HyperClient<HttpsConnector<HttpConnector<GaiResolver>>, BodyBytes>;
 
+/// Client that makes all requests that do not go to the osu!api itself
 pub struct Client {
     client: InnerClient,
 }
@@ -63,36 +64,42 @@ impl Client {
         }
     }
 
+    /// Request all user ids stored by osekai
     pub async fn get_osekai_members(&self) -> Result<Bytes> {
         let url = format!("{base}down_members.php", base = Config::get().url_base);
 
         self.send_get_request(url).await
     }
 
+    /// Upload medals to osekai
     pub async fn upload_medals(&self, medals: &[ScrapedMedal]) -> Result<Bytes> {
         let url = format!("{base}up_medals.php", base = Config::get().url_base);
 
         self.send_post_request(&url, &medals).await
     }
 
+    /// Upload medal rarities to osekai
     pub async fn upload_rarity(&self, rarity: &MedalRarities) -> Result<Bytes> {
         let url = format!("{base}up_medals_rarity.php", base = Config::get().url_base);
 
         self.send_post_request(&url, rarity).await
     }
 
+    /// Upload user rankings to osekai
     pub async fn upload_ranking(&self, ranking: &[RankingUser]) -> Result<Bytes> {
         let url = format!("{base}up_ranking.php", base = Config::get().url_base);
 
         self.send_post_request(&url, &ranking).await
     }
 
+    /// Upload badges to osekai
     pub async fn upload_badges(&self, badges: &Badges) -> Result<Bytes> {
         let url = format!("{base}up_badges.php", base = Config::get().url_base);
 
         self.send_post_request(&url, badges).await
     }
 
+    /// Notify osekai that the upload iteration is finished
     pub async fn finish_uploading(&self) -> Result<Bytes> {
         let url = format!("{base}finish.php", base = Config::get().url_base);
 

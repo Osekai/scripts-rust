@@ -12,6 +12,8 @@ use hyper::body::{HttpBody, SizeHint};
 use super::multipart::Multipart;
 
 #[derive(Clone, Default)]
+/// Custom byte type to avoid having to use a wrapping body
+/// when making requests
 pub struct BodyBytes(Bytes);
 
 impl BodyBytes {

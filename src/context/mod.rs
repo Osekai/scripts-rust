@@ -39,6 +39,7 @@ impl Context {
         Ok(Self { client, osu })
     }
 
+    /// Runs one iteration and then returns
     pub async fn run_once(self, task: Task, delay: u64, extras: &[u32]) {
         info!("Arguments:");
         info!("  - Run a single task: {task}");
@@ -55,6 +56,7 @@ impl Context {
         info!("Finished task {task}");
     }
 
+    /// Runs forever based on the schedule in the .env file
     pub async fn loop_forever(self, args: Args) {
         let schedule = &Config::get().schedule;
         let delay = args.initial_delay.unwrap_or(1);
@@ -97,11 +99,13 @@ impl Context {
         }
     }
 
+    /// Runs one single iteration based on the task
     async fn iteration(&self, task: Task, extras: &[u32]) {
         info!("Starting task `{task}`");
 
         let (users, badges) = self.gather_users_and_badges(task, extras).await;
 
+        // Upload badges if required
         if !badges.is_empty() && task.badges() {
             match self.client.upload_badges(&badges).await {
                 Ok(_) => info!("Successfully uploaded {} badges", badges.len()),
@@ -109,8 +113,10 @@ impl Context {
             }
         }
 
+        // Request medals
         match self.request_medals().await {
             Ok(medals) => {
+                // Upload medals if required
                 if task.medals() {
                     match self.client.upload_medals(&medals).await {
                         Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
@@ -123,6 +129,7 @@ impl Context {
             Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
         }
 
+        // Notify osekai that we're done uploading
         match self.client.finish_uploading().await {
             Ok(_) => info!("Successfully finished uploading"),
             Err(err) => error!("{:?}", err.wrap_err("Failed to finish uploading")),
@@ -131,6 +138,7 @@ impl Context {
 
     #[cfg(not(feature = "generate"))]
     async fn gather_users_and_badges(&self, task: Task, extras: &[u32]) -> (Vec<UserFull>, Badges) {
+        // Retrieve users from the leaderboards if necessary, otherwise start blank
         let mut user_ids = if task.leaderboard() {
             match self.request_leaderboards().await {
                 Ok(user_ids) => user_ids,
@@ -144,12 +152,15 @@ impl Context {
             HashSet::with_hasher(IntHasher)
         };
 
+        // If medals are the only thing that should be updated, requesting users is not necessary
         if task != Task::MEDALS {
+            // Otherwise request the user ids stored by osekai
             if let Err(err) = self.request_osekai_users(&mut user_ids).await {
                 error!("{:?}", err.wrap_err("Failed to gather more users"));
             }
         }
 
+        // In case additional user ids were given through CLI, add them here
         user_ids.extend(extras);
 
         let check_badges = task.badges();
@@ -159,7 +170,8 @@ impl Context {
 
         info!("Requesting {len} users...");
 
-        // 4 requests per user, potentially very expensive loop
+        // Request osu! user data for all users for all modes.
+        // The core loop and very expensive
         for (user_id, i) in user_ids.into_iter().zip(1..) {
             let mut user = match self.request_osu_user(user_id).await {
                 Ok(user) => user,
@@ -171,6 +183,7 @@ impl Context {
                 }
             };
 
+            // Process badges if required
             if let Some(user_badges) = user.badges_mut().filter(|_| check_badges) {
                 for badge in user_badges.iter_mut() {
                     badges.insert(user_id, badge);
@@ -188,6 +201,7 @@ impl Context {
     }
 
     #[cfg(feature = "generate")]
+    /// Generate users with random dummy values
     async fn gather_users_and_badges(&self, _: Task, _: &[u32]) -> (Vec<UserFull>, Badges) {
         debug!("Start generating users...");
 
@@ -208,10 +222,11 @@ impl Context {
         #[allow(unused_mut)] mut users: Vec<UserFull>,
         medals: &[ScrapedMedal],
     ) {
+        // If rarities are required, calculate them, otherwise just return
         let rarities = if !users.is_empty() && (task.rarity() || task.ranking()) {
             #[cfg(feature = "generate")]
             {
-                // Make sure that all medal ids are valid
+                // Make sure that all medal ids are valid if they were randomly generated
                 let medal_ids: HashSet<_, IntHasher> =
                     medals.iter().map(|medal| medal.id).collect();
 
@@ -227,6 +242,7 @@ impl Context {
             return;
         };
 
+        // Upload rarities if required
         if task.rarity() {
             match self.client.upload_rarity(&rarities).await {
                 Ok(_) => info!("Successfully uploaded {} medal rarities", rarities.len()),
@@ -234,6 +250,7 @@ impl Context {
             }
         }
 
+        // Calculate and upload user rankings if required
         if task.ranking() {
             let ranking: Vec<_> = users
                 .into_iter()

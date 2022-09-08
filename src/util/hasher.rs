@@ -13,6 +13,7 @@ impl BuildHasher for IntHasher {
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+/// Efficient hasher for integers
 pub struct IntHash(u64);
 
 #[rustfmt::skip]

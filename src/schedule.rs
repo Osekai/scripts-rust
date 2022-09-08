@@ -8,6 +8,8 @@ use eyre::Report;
 
 use crate::task::Task;
 
+/// Contains a list of tasks to be executed one after
+/// the other with an interval in between.
 pub struct Schedule {
     tasks: Vec<Task>,
 }

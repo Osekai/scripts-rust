@@ -16,6 +16,7 @@ use crate::{model::UserFull, util::IntHasher};
 use super::Context;
 
 impl Context {
+    /// Request user data of a user for all four modes
     pub async fn request_osu_user(&self, user_id: u32) -> Result<UserFull> {
         let osu = self.osu.user(user_id).mode(GameMode::Osu);
         let tko = self.osu.user(user_id).mode(GameMode::Taiko);
@@ -28,7 +29,8 @@ impl Context {
             .context("failed to get user from osu!api")
     }
 
-    /// Makes 800 requests to the osu!api, very expensive call!
+    /// Request all leaderboard pages for all four modes for a total of
+    /// 800 requests - expensive call!
     pub async fn request_leaderboards(&self) -> Result<HashSet<u32, IntHasher>> {
         info!("Requesting all leaderboard pages of all modes...");
 
@@ -61,6 +63,7 @@ impl Context {
         Ok(user_ids)
     }
 
+    /// Request all user ids stored by osekai
     pub async fn request_osekai_users(&self, users: &mut HashSet<u32, IntHasher>) -> Result<()> {
         let bytes = self
             .client

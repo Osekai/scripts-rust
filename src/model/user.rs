@@ -28,6 +28,7 @@ impl UserFull {
             .map(|(id, _)| id)
     }
 
+    /// Iterate over the pp values for each mode
     pub fn pp_iter(&self) -> impl Iterator<Item = f32> + '_ {
         self.inner
             .iter()
@@ -35,10 +36,12 @@ impl UserFull {
             .map(|stats| stats.pp)
     }
 
+    /// Sum up the pp values of each mode
     pub fn total_pp(&self) -> f32 {
         self.pp_iter().sum()
     }
 
+    /// Calculate the standard deviation for the four pp values
     pub fn std_dev_pp(&self) -> f32 {
         let total = self.total_pp();
         let mean = total / 4.0;

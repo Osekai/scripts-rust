@@ -6,6 +6,7 @@ use serde::Serialize;
 
 const BOUNDARY_LEN: usize = 16;
 
+/// Multipart form implementation to send through POST requests
 pub struct Multipart {
     bytes: Vec<u8>,
     boundary: String,
