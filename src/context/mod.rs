@@ -68,20 +68,20 @@ impl Context {
         let mut user_ids = match self.get_leaderboard_user_ids().await {
             Ok(user_ids) => user_ids,
             Err(err) => {
-                error!("{:?}", err.wrap_err("failed to get leaderboard users"));
+                error!("{:?}", err.wrap_err("Failed to get leaderboard users"));
 
                 HashSet::with_hasher(IntHasher)
             }
         };
 
         if let Err(err) = self.gather_more_users(&mut user_ids).await {
-            error!("{:?}", err.wrap_err("failed to gather more users"));
+            error!("{:?}", err.wrap_err("Failed to gather more users"));
         }
 
         let (all_badges, check_badges) = match self.gather_badges().await {
             Ok(badges) => (badges, true),
             Err(err) => {
-                error!("{:?}", err.wrap_err("failed to gather badges"));
+                error!("{:?}", err.wrap_err("Failed to gather badges"));
 
                 (HashMap::new(), false)
             }
@@ -95,7 +95,7 @@ impl Context {
             let mut user = match self.get_user(user_id).await {
                 Ok(user) => user,
                 Err(err) => {
-                    let wrap = format!("failed to request user {user_id}");
+                    let wrap = format!("Failed to request user {user_id}");
                     error!("{:?}", err.wrap_err(wrap));
 
                     continue;
@@ -143,7 +143,7 @@ impl Context {
         if !new_badges.is_empty() {
             match self.client.upload_badges(&new_badges).await {
                 Ok(_) => info!("Successfully uploaded {} badges", new_badges.len()),
-                Err(err) => error!("{:?}", err.wrap_err("failed to upload badges")),
+                Err(err) => error!("{:?}", err.wrap_err("Failed to upload badges")),
             }
         }
 
@@ -151,17 +151,17 @@ impl Context {
             Ok(medals) => {
                 match self.client.upload_medals(&medals).await {
                     Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
-                    Err(err) => error!("{:?}", err.wrap_err("failed to upload medals")),
+                    Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
                 }
 
                 let rarities = Self::calculate_medal_rarity(&users, &medals);
 
                 match self.client.upload_rarity(&rarities).await {
                     Ok(_) => info!("Successfully uploaded {} medal rarities", rarities.len()),
-                    Err(err) => error!("{:?}", err.wrap_err("failed to upload medal rarities")),
+                    Err(err) => error!("{:?}", err.wrap_err("Failed to upload medal rarities")),
                 }
             }
-            Err(err) => error!("{:?}", err.wrap_err("failed to gather medals")),
+            Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
         }
 
         match self.gather_rarities().await {
@@ -173,15 +173,15 @@ impl Context {
 
                 match self.client.upload_ranking(&ranking).await {
                     Ok(_) => info!("Successfully uploaded {} ranking entries", ranking.len()),
-                    Err(err) => error!("{:?}", err.wrap_err("failed to upload ranking")),
+                    Err(err) => error!("{:?}", err.wrap_err("Failed to upload ranking")),
                 }
             }
-            Err(err) => error!("{:?}", err.wrap_err("failed to gather rarities")),
+            Err(err) => error!("{:?}", err.wrap_err("Failed to gather rarities")),
         }
 
         match self.client.finish_uploading().await {
             Ok(_) => info!("Successfully finished uploading"),
-            Err(err) => error!("{:?}", err.wrap_err("failed to finish uploading")),
+            Err(err) => error!("{:?}", err.wrap_err("Failed to finish uploading")),
         }
     }
 }

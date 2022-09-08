@@ -42,7 +42,7 @@ fn main() {
     let _log_worker_guard = logging::init();
 
     if let Err(err) = runtime.block_on(async_main()) {
-        error!("{:?}", err.wrap_err("critical error in main"));
+        error!("{:?}", err.wrap_err("Critical error in main"));
     }
 }
 
@@ -83,7 +83,7 @@ async fn async_main() -> Result<()> {
         _ = ctx.run(args) => unreachable!(),
         res = signal::ctrl_c() => match res {
             Ok(_) => info!("Received Ctrl+C"),
-            Err(err) => error!("{:?}", Report::new(err).wrap_err("failed to await ctrl#c")),
+            Err(err) => error!("{:?}", Report::new(err).wrap_err("Failed to await ctrl+c")),
         }
     }
 

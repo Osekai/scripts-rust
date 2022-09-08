@@ -93,7 +93,7 @@ impl Client {
 
     async fn send_get_request(&self, url: impl AsRef<str>) -> Result<Bytes> {
         let url = url.as_ref();
-        trace!("sending GET request to url {url}");
+        trace!("Sending GET request to url {url}");
 
         let req = Request::builder()
             .uri(url)
@@ -116,7 +116,7 @@ impl Client {
         J: Serialize,
     {
         let url = url.as_ref();
-        trace!("sending POST request to url {url}");
+        trace!("Sending POST request to url {url}");
 
         let form = Multipart::new()
             .push_text("key", &Config::get().tokens.post)
