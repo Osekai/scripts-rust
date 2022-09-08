@@ -45,7 +45,9 @@ impl Client {
     /// Requests peppy's webpage and returns its bytes
     pub async fn get_user_webpage(&self) -> Result<Vec<u8>> {
         // Avoid request spamming while debugging
-        if cfg!(debug_assertion) {
+        if cfg!(debug_assertions) {
+            debug!("Reading ./peppy.html instead of requesting the webpage");
+
             fs::read("./peppy.html").context("failed to read `./peppy.html`")
         } else {
             let url = "https://osu.ppy.sh/users/peppy/osu";

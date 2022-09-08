@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 #[derive(Deserialize)]
 pub struct ScrapedUser {
@@ -6,7 +6,7 @@ pub struct ScrapedUser {
     pub medals: Vec<ScrapedMedal>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ScrapedMedal {
     #[serde(rename(serialize = "link"))]
     pub icon_url: String,
@@ -15,11 +15,15 @@ pub struct ScrapedMedal {
     pub name: String,
     pub grouping: String,
     pub ordering: u8,
-    #[serde(skip_serializing)]
     pub slug: String,
     pub description: String,
-    #[serde(rename(serialize = "restriction"))]
+    #[serde(rename(serialize = "restriction"), serialize_with = "serialize_mode")]
     pub mode: Option<String>,
-    #[serde(skip_serializing)]
     pub instructions: Option<String>,
+}
+
+fn serialize_mode<S: Serializer>(value: &Option<String>, s: S) -> Result<S::Ok, S::Error> {
+    let value = value.as_deref().unwrap_or("NULL");
+
+    s.serialize_str(value)
 }
