@@ -28,11 +28,13 @@ data example
 ```json
 [{
 	"medalid": 1,
-	"frequency": 83.5266
+	"frequency": 83.5266,
+	"count": 59381
 }, 
 {
 	"medalid": 2,
-	"frequency": 72.4523
+	"frequency": 72.4523,
+	"count": 42912
 }]
 ```
 
