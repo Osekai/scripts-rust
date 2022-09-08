@@ -13,6 +13,7 @@ use crate::{
     client::Client,
     config::Config,
     model::{Badge, IntHasher, RankingUser},
+    task::Task,
     Args,
 };
 
@@ -46,16 +47,18 @@ impl Context {
             sleep(duration).await;
         }
 
+        let schedule = &Config::get().schedule;
+
         info!("First task starting now...");
 
         let duration = Duration::from_secs(args.task_interval * 60 * 60);
         let mut interval = interval(duration);
 
-        loop {
+        for task in schedule.cycle() {
             interval.tick().await;
             let start = Instant::now();
 
-            self.iteration();
+            self.iteration(task).await;
 
             let end = Instant::now();
             let next = interval.period() - (end - start);
@@ -64,7 +67,9 @@ impl Context {
         }
     }
 
-    async fn iteration(&self) {
+    async fn iteration(&self, task: Task) {
+        info!("Starting task `{task}`");
+
         let mut user_ids = match self.get_leaderboard_user_ids().await {
             Ok(user_ids) => user_ids,
             Err(err) => {

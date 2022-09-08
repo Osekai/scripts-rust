@@ -11,6 +11,8 @@ use clap::Parser;
 use eyre::{Context as _, Report, Result};
 use tokio::{runtime::Builder as RuntimeBuilder, signal};
 
+use crate::config::Config;
+
 use self::context::Context;
 
 mod client;
@@ -18,6 +20,8 @@ mod config;
 mod context;
 mod logging;
 mod model;
+mod schedule;
+mod task;
 
 #[derive(Parser)]
 #[clap(author, about = DESCRIPTION)]
@@ -59,10 +63,13 @@ Script to gather medal, user, and badge data,
 process it, and upload it to osekai."#;
 
 async fn async_main() -> Result<()> {
+    config::init().context("failed to initialize config")?;
     let args = Args::parse();
 
     DESCRIPTION.lines().for_each(|line| info!("{line}"));
 
+    info!("");
+    info!("Schedule: {}", Config::get().schedule);
     info!("");
     info!("Arguments:");
     info!(
@@ -74,8 +81,6 @@ async fn async_main() -> Result<()> {
         args.task_interval
     );
     info!("-------------------------------------------------");
-
-    config::init().context("failed to initialize config")?;
 
     let ctx = Context::new().await.context("failed to create context")?;
 
