@@ -70,7 +70,18 @@ static DESCRIPTION: &str = r#"
 #################################################
 
 Script to gather medal, user, and badge data, 
-process it, and upload it to osekai."#;
+process it, and upload it to osekai.
+
+Task values:
+  - medals: A full list of medals will be retrieved and uploaded.
+  - leaderboard: In addition to osekai's users, the top 10,000
+      leaderboard users for all modes will be retrieved.
+  - rarity: Based on available users, medal rarities will be
+      calculated and uploaded.
+  - ranking: Process all users and upload them.
+  - badges: Collect badges of all available users and upload them.
+  - default: medals | rarity | ranking | badges
+  - full: medals | rarity | ranking | badges | leaderboard"#;
 
 async fn async_main() -> Result<()> {
     config::init().context("failed to initialize config")?;
@@ -87,7 +98,7 @@ async fn async_main() -> Result<()> {
             _ = ctx.loop_forever(args) => unreachable!(),
             res = signal::ctrl_c() => match res {
                 Ok(_) => info!("Received Ctrl+C"),
-                Err(err) => error!("{:?}", Report::new(err).wrap_err("Failed to await ctrl+c")),
+                Err(err) => error!("{:?}", Report::new(err).wrap_err("Failed to await Ctrl+C")),
             }
         }
     }
