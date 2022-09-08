@@ -63,6 +63,12 @@ impl Client {
         }
     }
 
+    pub async fn get_osekai_members(&self) -> Result<Bytes> {
+        let url = format!("{base}down_members.php", base = Config::get().url_base);
+
+        self.send_get_request(url).await
+    }
+
     pub async fn upload_medals(&self, medals: &[ScrapedMedal]) -> Result<Bytes> {
         let url = format!("{base}up_medals.php", base = Config::get().url_base);
 
