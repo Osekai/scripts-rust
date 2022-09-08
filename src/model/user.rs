@@ -1,8 +1,4 @@
-use std::{cmp::Ordering, collections::HashMap};
-
 use rosu_v2::prelude::{Badge, MedalCompact, User};
-
-use crate::util::IntHasher;
 
 use super::MedalRarities;
 

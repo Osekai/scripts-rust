@@ -1,7 +1,5 @@
 use std::{
-    collections::{BinaryHeap, HashMap, HashSet},
-    mem,
-    rc::Rc,
+    collections::HashSet,
     time::{Duration, Instant},
 };
 
@@ -12,7 +10,7 @@ use tokio::time::{interval, sleep};
 use crate::{
     client::Client,
     config::Config,
-    model::{Badges, MedalRarities, RankingUser, ScrapedMedal, UserFull},
+    model::{Badges, RankingUser, ScrapedMedal, UserFull},
     task::Task,
     util::IntHasher,
     Args,
@@ -102,7 +100,7 @@ impl Context {
     async fn iteration(&self, task: Task) {
         info!("Starting task `{task}`");
 
-        let (mut users, badges) = self.gather_users_and_badges(task).await;
+        let (users, badges) = self.gather_users_and_badges(task).await;
 
         if !badges.is_empty() && task.badges() {
             match self.client.upload_badges(&badges).await {
@@ -172,7 +170,7 @@ impl Context {
             };
 
             if let Some(user_badges) = user.badges_mut().filter(|_| check_badges) {
-                for mut badge in user_badges.iter_mut() {
+                for badge in user_badges.iter_mut() {
                     badges.insert(user_id, badge);
                 }
             }
@@ -188,12 +186,12 @@ impl Context {
     }
 
     #[cfg(feature = "generate")]
-    async fn gather_users_and_badges(&self, task: Task) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, _task: Task) -> (Vec<UserFull>, Badges) {
         debug!("Start generating users...");
 
         let mut rng = rand::thread_rng();
 
-        let mut users: Vec<UserFull> = (0..5_000)
+        let users: Vec<UserFull> = (0..5_000)
             .map(|_| crate::util::Generate::generate(&mut rng))
             .collect();
 
@@ -205,7 +203,7 @@ impl Context {
     async fn handle_rarities_and_ranking(
         &self,
         task: Task,
-        mut users: Vec<UserFull>,
+        #[allow(unused_mut)] mut users: Vec<UserFull>,
         medals: &[ScrapedMedal],
     ) {
         let rarities = if !users.is_empty() && (task.rarity() || task.ranking()) {

@@ -1,7 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     fmt::{Formatter, Result as FmtResult},
-    rc::Rc,
 };
 
 use eyre::{Context as _, Result};

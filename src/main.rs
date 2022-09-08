@@ -1,5 +1,6 @@
 #![deny(clippy::all, nonstandard_style, rust_2018_idioms, warnings)]
 #![allow(unused)] // TODO: remove
+#![cfg_attr(feature = "generate", allow(unused))]
 
 #[macro_use]
 extern crate eyre;

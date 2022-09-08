@@ -64,7 +64,6 @@ impl Task {
 impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let mut found = false;
-
         let mut task = *self;
 
         if task.contains(Self::FULL) {
