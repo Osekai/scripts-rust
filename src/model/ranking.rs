@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::util::IntHasher;
 
-use super::UserFull;
+use super::{MedalRarities, UserFull};
 
 #[derive(Serialize)]
 pub struct RankingUser {
@@ -32,7 +32,7 @@ pub struct RankingUser {
 }
 
 impl RankingUser {
-    pub fn new(user: UserFull, rarities: &HashMap<u32, f64, IntHasher>) -> Self {
+    pub fn new(user: UserFull, rarities: &MedalRarities) -> Self {
         let total_pp = user.total_pp();
         let stdev_pp = user.std_dev_pp();
         let rarest_medal_id = user.rarest_medal_id(rarities);

@@ -1,14 +1,23 @@
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{Formatter, Result as FmtResult},
+    rc::Rc,
+};
 
 use eyre::{Context as _, Result};
 use rosu_v2::prelude::GameMode;
+use serde::{
+    de::{Error as SerdeError, SeqAccess, Unexpected, Visitor},
+    Deserialize, Deserializer as _,
+};
+use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{model::UserFull, util::IntHasher};
 
 use super::Context;
 
 impl Context {
-    pub async fn get_user(&self, user_id: u32) -> Result<UserFull> {
+    pub async fn request_osu_user(&self, user_id: u32) -> Result<UserFull> {
         let osu = self.osu.user(user_id).mode(GameMode::Osu);
         let tko = self.osu.user(user_id).mode(GameMode::Taiko);
         let ctb = self.osu.user(user_id).mode(GameMode::Catch);
@@ -21,7 +30,7 @@ impl Context {
     }
 
     /// Makes 800 requests to the osu!api, very expensive call!
-    pub async fn get_leaderboard_user_ids(&self) -> Result<HashSet<u32, IntHasher>> {
+    pub async fn request_leaderboards(&self) -> Result<HashSet<u32, IntHasher>> {
         info!("Requesting all leaderboard pages of all modes...");
 
         let modes = [
@@ -51,5 +60,51 @@ impl Context {
         }
 
         Ok(user_ids)
+    }
+
+    pub async fn request_osekai_users(&self, users: &mut HashSet<u32, IntHasher>) -> Result<()> {
+        let bytes = self
+            .client
+            .get_osekai_members()
+            .await
+            .context("failed to get osekai members")?;
+
+        Deserializer::new(SliceRead::new(&bytes))
+            .deserialize_seq(ExtendUsersVisitor(users))
+            .with_context(|| {
+                let text = String::from_utf8_lossy(&bytes);
+
+                format!("failed to deserialize osekai members: {text}")
+            })
+    }
+}
+
+struct ExtendUsersVisitor<'u>(&'u mut HashSet<u32, IntHasher>);
+
+impl<'de> Visitor<'de> for ExtendUsersVisitor<'_> {
+    type Value = ();
+
+    #[inline]
+    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
+        f.write_str(r#"a list of `{"Id": "<number>"}` objects"#)
+    }
+
+    #[inline]
+    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+        #[derive(Deserialize)]
+        struct IdEntry<'s> {
+            #[serde(rename = "Id")]
+            id: &'s str,
+        }
+
+        while let Some(IdEntry { id }) = seq.next_element()? {
+            let id = id
+                .parse()
+                .map_err(|_| SerdeError::invalid_value(Unexpected::Str(id), &"an integer"))?;
+
+            self.0.insert(id);
+        }
+
+        Ok(())
     }
 }

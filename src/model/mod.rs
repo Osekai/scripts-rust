@@ -1,7 +1,7 @@
 pub use self::{
-    badge::Badge,
+    badge::{BadgeEntry, Badges},
     ranking::RankingUser,
-    rarity::MedalRarity,
+    rarity::{MedalRarities, MedalRarityEntry},
     scrap::{ScrapedMedal, ScrapedUser},
     user::UserFull,
 };

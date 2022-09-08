@@ -278,7 +278,7 @@ impl Generate for MedalCompact {
 impl Generate for CountryCode {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         (0..2)
-            .map(|_| rng.gen_range(b'A'..b'Z'))
+            .map(|_| rng.gen_range(b'A'..=b'Z'))
             .map(char::from)
             .collect()
     }

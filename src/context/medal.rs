@@ -1,7 +1,7 @@
 use std::{collections::HashMap, string::FromUtf8Error};
 
 use crate::{
-    model::{MedalRarity, ScrapedMedal, ScrapedUser, UserFull},
+    model::{MedalRarities, ScrapedMedal, ScrapedUser, UserFull},
     util::IntHasher,
 };
 
@@ -11,7 +11,7 @@ use eyre::{Context as _, ContextCompat as _, Result};
 use scraper::{Html, Selector};
 
 impl Context {
-    pub async fn gather_medals(&self) -> Result<Vec<ScrapedMedal>> {
+    pub async fn request_medals(&self) -> Result<Vec<ScrapedMedal>> {
         let bytes = self
             .client
             .get_user_webpage()
@@ -36,7 +36,7 @@ impl Context {
         Ok(deserialized.medals)
     }
 
-    pub fn calculate_medal_rarity(users: &[UserFull], medals: &[ScrapedMedal]) -> Vec<MedalRarity> {
+    pub fn calculate_rarities(users: &[UserFull], medals: &[ScrapedMedal]) -> MedalRarities {
         let mut counts = HashMap::with_capacity_and_hasher(200, IntHasher);
 
         for medal in users.iter().filter_map(UserFull::medals).flatten() {
@@ -51,11 +51,7 @@ impl Context {
 
         counts
             .into_iter()
-            .map(|(medal_id, count)| MedalRarity {
-                medal_id,
-                count,
-                frequency: (100 * count) as f64 / user_count,
-            })
+            .map(|(medal_id, count)| (medal_id, count, (100 * count) as f64 / user_count))
             .collect()
     }
 }

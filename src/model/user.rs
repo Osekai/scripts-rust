@@ -4,6 +4,8 @@ use rosu_v2::prelude::{Badge, MedalCompact, User};
 
 use crate::util::IntHasher;
 
+use super::MedalRarities;
+
 pub struct UserFull {
     pub(super) inner: [User; 4],
 }
@@ -17,11 +19,16 @@ impl UserFull {
         self.inner[0].medals.as_deref()
     }
 
-    pub fn rarest_medal_id(&self, rarities: &HashMap<u32, f64, IntHasher>) -> Option<u32> {
+    #[cfg(feature = "generate")]
+    pub fn medals_mut(&mut self) -> Option<&mut Vec<MedalCompact>> {
+        self.inner[0].medals.as_mut()
+    }
+
+    pub fn rarest_medal_id(&self, rarities: &MedalRarities) -> Option<u32> {
         self.medals()?
             .iter()
-            .flat_map(|medal| Some((medal.medal_id, *rarities.get(&medal.medal_id)?)))
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+            .flat_map(|medal| Some((medal.medal_id, rarities.get(&medal.medal_id)?.count)))
+            .max_by_key(|(_, count)| *count)
             .map(|(id, _)| id)
     }
 
