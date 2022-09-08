@@ -6,7 +6,7 @@ use std::{
 
 use eyre::Report;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Task(u8);
 
 #[rustfmt::skip]

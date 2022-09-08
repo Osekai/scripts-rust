@@ -29,9 +29,9 @@ pub struct Args {
     #[clap(short, long, value_parser, default_value_t = 12)]
     /// Hours inbetween two tasks
     interval: u64,
-    #[clap(long, value_parser, default_value_t = 1)]
+    #[clap(long, value_parser)]
     /// Minutes until the first task is started
-    initial_delay: u64,
+    initial_delay: Option<u64>,
     #[clap(short, long, value_parser)]
     /// Specific task to be run only once
     task: Option<Task>,
@@ -70,7 +70,9 @@ async fn async_main() -> Result<()> {
     let ctx = Context::new().await.context("failed to create context")?;
 
     if let Some(task) = args.task {
-        ctx.run_once(task).await;
+        let delay = args.initial_delay.unwrap_or(0);
+
+        ctx.run_once(task, delay).await;
     } else {
         tokio::select! {
             _ = ctx.loop_forever(args) => unreachable!(),

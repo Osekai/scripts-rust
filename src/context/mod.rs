@@ -42,10 +42,16 @@ impl Context {
         Ok(Self { client, osu })
     }
 
-    pub async fn run_once(self, task: Task) {
+    pub async fn run_once(self, task: Task, delay: u64) {
         info!("Arguments:");
         info!("  - Run a single task: {task}");
+        info!("  - The task will start in {delay} minute(s)");
         info!("");
+
+        if delay > 0 {
+            let duration = Duration::from_secs(delay * 60);
+            sleep(duration).await;
+        }
 
         self.iteration(task).await;
 
@@ -54,6 +60,7 @@ impl Context {
 
     pub async fn loop_forever(self, args: Args) {
         let schedule = &Config::get().schedule;
+        let delay = args.initial_delay.unwrap_or(1);
 
         info!("Schedule:");
 
@@ -63,18 +70,15 @@ impl Context {
 
         info!("");
         info!("Arguments:");
-        info!(
-            "  - The first task will start in {} minute(s)",
-            args.initial_delay
-        );
+        info!("  - The first task will start in {delay} minute(s)");
         info!(
             "  - Tasks will start {} hour(s) after each other",
             args.interval
         );
         info!("");
 
-        if args.initial_delay > 0 {
-            let duration = Duration::from_secs(args.initial_delay * 60);
+        if delay > 0 {
+            let duration = Duration::from_secs(delay * 60);
             sleep(duration).await;
         }
 
@@ -112,8 +116,10 @@ impl Context {
             HashSet::with_hasher(IntHasher)
         };
 
-        if let Err(err) = self.gather_more_users(&mut user_ids).await {
-            error!("{:?}", err.wrap_err("Failed to gather more users"));
+        if task != Task::MEDALS {
+            if let Err(err) = self.gather_more_users(&mut user_ids).await {
+                error!("{:?}", err.wrap_err("Failed to gather more users"));
+            }
         }
 
         let (all_badges, check_badges) = if task.badges() {
