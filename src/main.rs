@@ -9,6 +9,7 @@ extern crate tracing;
 
 use clap::Parser;
 use eyre::{Context as _, Report, Result};
+use task::Task;
 use tokio::{runtime::Builder as RuntimeBuilder, signal};
 
 use crate::config::Config;
@@ -26,15 +27,16 @@ mod util;
 
 #[derive(Parser)]
 #[clap(author, about = DESCRIPTION)]
-/// Script to request data, process it, and then upload
-/// it to osekai in regular intervals.
 pub struct Args {
-    #[clap(long, value_parser, default_value_t = 12)]
+    #[clap(short, long, value_parser, default_value_t = 12)]
     /// Hours inbetween two tasks
-    task_interval: u64,
+    interval: u64,
     #[clap(long, value_parser, default_value_t = 1)]
     /// Minutes until the first task is started
     initial_delay: u64,
+    #[clap(short, long, value_parser)]
+    /// Specific task to be run only once
+    task: Option<Task>,
 }
 
 fn main() {
@@ -67,29 +69,17 @@ async fn async_main() -> Result<()> {
     config::init().context("failed to initialize config")?;
     let args = Args::parse();
 
-    DESCRIPTION.lines().for_each(|line| info!("{line}"));
-
-    info!("");
-    info!("Schedule: {}", Config::get().schedule);
-    info!("");
-    info!("Arguments:");
-    info!(
-        "  - The first task will start in {} minute(s)",
-        args.initial_delay
-    );
-    info!(
-        "  - Tasks will start {} hour(s) after each other",
-        args.task_interval
-    );
-    info!("-------------------------------------------------");
-
     let ctx = Context::new().await.context("failed to create context")?;
 
-    tokio::select! {
-        _ = ctx.loop_forever(args) => unreachable!(),
-        res = signal::ctrl_c() => match res {
-            Ok(_) => info!("Received Ctrl+C"),
-            Err(err) => error!("{:?}", Report::new(err).wrap_err("Failed to await ctrl+c")),
+    if let Some(task) = args.task {
+        ctx.run_once(task).await;
+    } else {
+        tokio::select! {
+            _ = ctx.loop_forever(args) => unreachable!(),
+            res = signal::ctrl_c() => match res {
+                Ok(_) => info!("Received Ctrl+C"),
+                Err(err) => error!("{:?}", Report::new(err).wrap_err("Failed to await ctrl+c")),
+            }
         }
     }
 

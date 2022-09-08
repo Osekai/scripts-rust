@@ -15,7 +15,7 @@ use crate::{
     model::{Badge, RankingUser},
     task::Task,
     util::IntHasher,
-    Args,
+    Args, DESCRIPTION,
 };
 
 mod medal;
@@ -42,7 +42,36 @@ impl Context {
         Ok(Self { client, osu })
     }
 
+    pub async fn run_once(self, task: Task) {
+        DESCRIPTION.lines().for_each(|line| info!("{line}"));
+
+        info!("");
+        info!("Arguments:");
+        info!("  - Run a single task: {task}",);
+        info!("-------------------------------------------------");
+
+        self.iteration(task).await;
+
+        info!("Finished task");
+    }
+
     pub async fn loop_forever(self, args: Args) {
+        DESCRIPTION.lines().for_each(|line| info!("{line}"));
+
+        info!("");
+        info!("Schedule: {}", Config::get().schedule);
+        info!("");
+        info!("Arguments:");
+        info!(
+            "  - The first task will start in {} minute(s)",
+            args.initial_delay
+        );
+        info!(
+            "  - Tasks will start {} hour(s) after each other",
+            args.interval
+        );
+        info!("-------------------------------------------------");
+
         if args.initial_delay > 0 {
             let duration = Duration::from_secs(args.initial_delay * 60);
             sleep(duration).await;
@@ -50,7 +79,7 @@ impl Context {
 
         info!("First task starting now...");
 
-        let duration = Duration::from_secs(args.task_interval * 60 * 60);
+        let duration = Duration::from_secs(args.interval * 60 * 60);
         let mut interval = interval(duration);
 
         for task in Config::get().schedule.cycle() {
@@ -66,7 +95,11 @@ impl Context {
         }
     }
 
-    pub async fn iteration(&self, task: Task) {
+    async fn iteration(&self, task: Task) {
+        debug!("Executing iteration...");
+    }
+
+    async fn iteration_(&self, task: Task) {
         info!("Starting task `{task}`");
 
         let mut user_ids = if task.leaderboard() {
