@@ -49,7 +49,7 @@ impl Context {
 
         self.iteration(task).await;
 
-        info!("Finished task");
+        info!("Finished task {task}");
     }
 
     pub async fn loop_forever(self, args: Args) {
@@ -97,10 +97,6 @@ impl Context {
     }
 
     async fn iteration(&self, task: Task) {
-        debug!("Executing iteration...");
-    }
-
-    async fn iteration_(&self, task: Task) {
         info!("Starting task `{task}`");
 
         let mut user_ids = if task.leaderboard() {

@@ -25,12 +25,8 @@ impl FromStr for Schedule {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let tasks = s
             .split(',')
-            .map(|task| {
-                task.split('|')
-                    .map(str::trim)
-                    .map(Task::from_str)
-                    .try_fold(Task::empty(), |total, next| next.map(|next| total | next))
-            })
+            .map(str::trim)
+            .map(Task::from_str)
             .collect::<Result<_, _>>()?;
 
         Ok(Self { tasks })

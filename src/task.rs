@@ -117,6 +117,16 @@ impl Display for Task {
             task.remove(Self::RARITY);
         }
 
+        if task.contains(Self::RANKING) {
+            if found {
+                f.write_str(" | ")?;
+            }
+
+            f.write_str("Ranking")?;
+            found = true;
+            task.remove(Self::RANKING);
+        }
+
         if task.contains(Self::EXTRA_BADGES) {
             if found {
                 f.write_str(" | ")?;
@@ -137,47 +147,26 @@ impl FromStr for Task {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.to_ascii_lowercase();
 
-        let mut res = Self::empty();
+        s.split('|')
+            .map(str::trim)
+            .try_fold(Self::empty(), |res, next| match next {
+                "default" => Ok(res | Self::DEFAULT),
+                "full" => Ok(res | Self::FULL),
+                "medal" | "medals" => Ok(res | Self::MEDALS),
+                "leaderboard" | "lb" => Ok(res | Self::LEADERBOARD),
+                "rarity" | "rarities" => Ok(res | Self::RARITY),
+                "ranking" => Ok(res | Self::RANKING),
+                "badge" | "badges" => Ok(res | Self::BADGES),
+                "extra" | "extra badges" | "extra_badges" => Ok(res | Self::EXTRA_BADGES),
+                _ => {
+                    let msg = format!(
+                        "failed to parse task `{s}`; must be a `|`-separated list of the following: \
+                        default, full, medal, leaderboard, rarity, badge, extra"
+                    );
 
-        if s.contains("default") {
-            res |= Self::DEFAULT;
-        }
-
-        if s.contains("full") {
-            res |= Self::FULL;
-        }
-
-        if s.contains("medal") {
-            res |= Self::MEDALS;
-        }
-
-        if s.contains("leaderboard") || s.contains("lb") {
-            res |= Self::LEADERBOARD;
-        }
-
-        if s.contains("rarity") | s.contains("rarities") {
-            res |= Self::RARITY;
-        }
-
-        // Note: will also hit for "extra badges"
-        if s.contains("badge") {
-            res |= Self::BADGES;
-        }
-
-        if s.contains("extra") {
-            res |= Self::EXTRA_BADGES;
-        }
-
-        if res.0 == 0 {
-            let msg = format!(
-                "Failed to parse task `{s}`; must contain either of the following: \n\
-                default, full, medal, leaderboard, rarity, badge, extra"
-            );
-
-            Err(Report::msg(msg))
-        } else {
-            Ok(res)
-        }
+                    Err(Report::msg(msg))
+                }
+            })
     }
 }
 

@@ -34,15 +34,10 @@ pub fn init() -> Result<()> {
             osu_client_secret: env_var("OSU_CLIENT_SECRET")?,
         },
         url_base: env_var("URL_BASE")?,
-        schedule: {
-            let value =
-                env::var("SCHEDULE").map_err(|_| eyre!("missing env variable `SCHEDULE`"))?;
-
-            value.parse().context(
-                "failed to parse schedule, be sure it's a comma separated string \
-                of tasks where tasks are a `|`-separated string of key words",
-            )?
-        },
+        schedule: env::var("SCHEDULE")
+            .map_err(|_| eyre!("missing env variable `SCHEDULE`"))?
+            .parse()
+            .context("failed to parse schedule; must be a comma-separated list of tasks")?,
     };
 
     CONFIG
