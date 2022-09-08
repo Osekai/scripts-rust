@@ -197,7 +197,7 @@ impl Context {
                         Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
                     }
 
-                    if task.rarity() {
+                    if task.rarity() && !users.is_empty() {
                         let rarities = Self::calculate_medal_rarity(&users, &medals);
 
                         match self.client.upload_rarity(&rarities).await {
@@ -214,7 +214,7 @@ impl Context {
             }
         }
 
-        if task.ranking() {
+        if task.ranking() && !users.is_empty() {
             match self.gather_rarities().await {
                 Ok(rarities) => {
                     let ranking: Vec<_> = users
