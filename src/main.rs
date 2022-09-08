@@ -26,15 +26,15 @@ mod util;
 #[derive(Parser)]
 #[clap(author, about = DESCRIPTION)]
 pub struct Args {
-    #[clap(short, long)]
+    #[clap(short, long, value_name = "USER_ID")]
     /// Additional user id to check (repeatable)
     extra: Vec<u32>,
-    #[clap(long)]
-    /// Minutes until the first task is started
-    initial_delay: Option<u64>,
-    #[clap(short, long, default_value_t = 12)]
-    /// Hours inbetween two tasks
+    #[clap(short, long, default_value_t = 12, value_name = "HOURS")]
+    /// Time inbetween two tasks
     interval: u64,
+    #[clap(long, value_name = "MINUTES")]
+    /// Time until the first task is started
+    initial_delay: Option<u64>,
     #[clap(short, long, action)]
     /// Set this if no logs should be displayed
     quiet: bool,
