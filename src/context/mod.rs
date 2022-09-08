@@ -43,12 +43,9 @@ impl Context {
     }
 
     pub async fn run_once(self, task: Task) {
-        DESCRIPTION.lines().for_each(|line| info!("{line}"));
-
-        info!("");
         info!("Arguments:");
-        info!("  - Run a single task: {task}",);
-        info!("-------------------------------------------------");
+        info!("  - Run a single task: {task}");
+        info!("");
 
         self.iteration(task).await;
 
@@ -56,10 +53,14 @@ impl Context {
     }
 
     pub async fn loop_forever(self, args: Args) {
-        DESCRIPTION.lines().for_each(|line| info!("{line}"));
+        let schedule = &Config::get().schedule;
 
-        info!("");
-        info!("Schedule: {}", Config::get().schedule);
+        info!("Schedule:");
+
+        for (task, i) in schedule.iter().zip(1..) {
+            info!("  {i}. {task}");
+        }
+
         info!("");
         info!("Arguments:");
         info!(
@@ -70,7 +71,7 @@ impl Context {
             "  - Tasks will start {} hour(s) after each other",
             args.interval
         );
-        info!("-------------------------------------------------");
+        info!("");
 
         if args.initial_delay > 0 {
             let duration = Duration::from_secs(args.initial_delay * 60);
@@ -82,7 +83,7 @@ impl Context {
         let duration = Duration::from_secs(args.interval * 60 * 60);
         let mut interval = interval(duration);
 
-        for task in Config::get().schedule.cycle() {
+        for &task in schedule.iter().cycle() {
             interval.tick().await;
             let start = Instant::now();
 

@@ -1,6 +1,5 @@
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
-    iter::{Copied, Cycle},
     slice::Iter,
     str::FromStr,
 };
@@ -14,8 +13,8 @@ pub struct Schedule {
 }
 
 impl Schedule {
-    pub fn cycle(&self) -> Cycle<Copied<Iter<'_, Task>>> {
-        self.tasks.iter().copied().cycle()
+    pub fn iter(&self) -> Iter<'_, Task> {
+        self.tasks.iter()
     }
 }
 

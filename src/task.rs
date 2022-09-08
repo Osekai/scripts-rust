@@ -1,6 +1,6 @@
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
-    ops::{BitOr, BitOrAssign},
+    ops::{BitAndAssign, BitOr, BitOrAssign, Not},
     str::FromStr,
 };
 
@@ -26,6 +26,10 @@ impl Task {
 impl Task {
     pub fn contains(self, other: Self) -> bool {
         self.0 & other.0 == other.0
+    }
+
+    pub fn remove(&mut self, other: Self) {
+        *self &= !other;
     }
 
     pub fn empty() -> Self {
@@ -61,44 +65,66 @@ impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let mut found = false;
 
-        if self.contains(Self::MEDALS) {
-            f.write_str("Medals")?;
-            found = true;
+        let mut task = *self;
+
+        if task.contains(Self::FULL) {
+            return f.write_str("Full");
         }
 
-        if self.contains(Self::LEADERBOARD) {
+        if task.contains(Self::DEFAULT) {
+            f.write_str("Default")?;
+            found = true;
+            task.remove(Self::DEFAULT);
+        }
+
+        if task.contains(Self::MEDALS) {
+            if found {
+                f.write_str(" | ")?;
+            }
+
+            f.write_str("Medals")?;
+            found = true;
+            task.remove(Self::MEDALS);
+        }
+
+        if task.contains(Self::LEADERBOARD) {
             if found {
                 f.write_str(" | ")?;
             }
 
             f.write_str("Leaderboard")?;
             found = true;
+            task.remove(Self::LEADERBOARD);
         }
 
-        if self.contains(Self::BADGES) {
+        if task.contains(Self::BADGES) {
             if found {
                 f.write_str(" | ")?;
             }
 
             f.write_str("Badges")?;
             found = true;
+            task.remove(Self::BADGES);
         }
 
-        if self.contains(Self::RARITY) {
+        if task.contains(Self::RARITY) {
             if found {
                 f.write_str(" | ")?;
             }
 
             f.write_str("Rarity")?;
             found = true;
+            task.remove(Self::RARITY);
         }
 
-        if self.contains(Self::EXTRA_BADGES) {
+        if task.contains(Self::EXTRA_BADGES) {
             if found {
                 f.write_str(" | ")?;
             }
 
             f.write_str("ExtraBadges")?;
+            found = true;
+            task.remove(Self::EXTRA_BADGES);
         }
 
         Ok(())
@@ -168,5 +194,21 @@ impl BitOrAssign for Task {
     #[inline]
     fn bitor_assign(&mut self, rhs: Self) {
         self.0 |= rhs.0;
+    }
+}
+
+impl BitAndAssign for Task {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: Self) {
+        self.0 &= rhs.0;
+    }
+}
+
+impl Not for Task {
+    type Output = Self;
+
+    #[inline]
+    fn not(self) -> Self::Output {
+        Self(!self.0)
     }
 }
