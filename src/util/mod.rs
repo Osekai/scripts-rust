@@ -2,8 +2,8 @@ pub use self::hasher::{IntHash, IntHasher};
 
 mod hasher;
 
-#[cfg(any(debug_assertions, feature = "generate"))]
+#[cfg(feature = "generate")]
 pub use self::generate::Generate;
 
-#[cfg(any(debug_assertions, feature = "generate"))]
+#[cfg(feature = "generate")]
 mod generate;

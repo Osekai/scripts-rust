@@ -1,5 +1,4 @@
-#![cfg(any(debug_assertions, feature = "generate"))]
-#![allow(unused)]
+#![cfg(feature = "generate")]
 
 use std::ops::Range;
 
