@@ -46,7 +46,13 @@ fn main() {
         .build()
         .expect("failed to build runtime");
 
-    dotenv::dotenv().expect("failed to parse .env");
+    if dotenv::dotenv().is_err() {
+        panic!(
+            "Failed to parse .env file. \
+            Be sure there is one in the same folder as this executable."
+        );
+    }
+
     let _log_worker_guard = logging::init();
 
     if let Err(err) = runtime.block_on(async_main()) {
