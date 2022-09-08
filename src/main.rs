@@ -12,8 +12,6 @@ use eyre::{Context as _, Report, Result};
 use task::Task;
 use tokio::{runtime::Builder as RuntimeBuilder, signal};
 
-use crate::config::Config;
-
 use self::context::Context;
 
 mod client;

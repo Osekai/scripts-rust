@@ -15,7 +15,7 @@ use crate::{
     model::{Badge, RankingUser},
     task::Task,
     util::IntHasher,
-    Args, DESCRIPTION,
+    Args,
 };
 
 mod medal;
@@ -129,11 +129,14 @@ impl Context {
             (HashMap::new(), false)
         };
 
-        let mut users = Vec::with_capacity(user_ids.len());
+        let len = user_ids.len();
+        let mut users = Vec::with_capacity(len);
         let mut new_badges: Vec<Badge> = Vec::new();
 
+        info!("Requesting {len} users...");
+
         // 4 requests per user, potentially very expensive loop
-        for (i, user_id) in user_ids.into_iter().enumerate() {
+        for (user_id, i) in user_ids.into_iter().zip(1..) {
             let mut user = match self.get_user(user_id).await {
                 Ok(user) => user,
                 Err(err) => {
@@ -180,6 +183,10 @@ impl Context {
             }
 
             users.push(user);
+
+            if i % 1000 == 0 {
+                info!("User progress: {i}/{len}");
+            }
         }
 
         if !new_badges.is_empty() {

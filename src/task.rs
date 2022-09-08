@@ -6,7 +6,7 @@ use std::{
 
 use eyre::Report;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct Task(u8);
 
 #[rustfmt::skip]
@@ -133,7 +133,6 @@ impl Display for Task {
             }
 
             f.write_str("ExtraBadges")?;
-            found = true;
             task.remove(Self::EXTRA_BADGES);
         }
 

@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use eyre::{Context as _, Report};
+use eyre::Report;
 
 use crate::task::Task;
 

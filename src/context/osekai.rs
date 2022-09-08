@@ -6,7 +6,7 @@ use std::{
 
 use eyre::{Context as _, Result};
 use serde::{
-    de::{DeserializeSeed, Error as SerdeError, SeqAccess, Unexpected, Visitor},
+    de::{Error as SerdeError, SeqAccess, Unexpected, Visitor},
     Deserialize, Deserializer as _,
 };
 use serde_json::{de::SliceRead, Deserializer};
