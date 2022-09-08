@@ -51,10 +51,10 @@ impl Context {
 
         counts
             .into_iter()
-            .map(|(medal_id, total)| MedalRarity {
+            .map(|(medal_id, count)| MedalRarity {
                 medal_id,
-                total,
-                frequency: (100 * total) as f64 / user_count,
+                count,
+                frequency: (100 * count) as f64 / user_count,
             })
             .collect()
     }
