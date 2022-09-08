@@ -15,16 +15,46 @@ impl Task {
     pub const LEADERBOARD: Self =  Self(1 << 1);
     pub const BADGES: Self =       Self(1 << 2);
     pub const RARITY: Self =       Self(1 << 3);
-    pub const EXTRA_BADGES: Self = Self(1 << 4);
+    pub const RANKING: Self =      Self(1 << 4);
+    pub const EXTRA_BADGES: Self = Self(1 << 5);
 
-    pub const DEFAULT: Self = Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RARITY.0);
-    pub const FULL: Self = Self(
-        Self::MEDALS.0
-            | Self::LEADERBOARD.0
-            | Self::BADGES.0
-            | Self::RARITY.0
-            | Self::EXTRA_BADGES.0,
-    );
+    pub const DEFAULT: Self =
+        Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RARITY.0 | Self::RANKING.0);
+    pub const FULL: Self = Self(u8::MAX);
+}
+
+impl Task {
+    pub fn contains(self, other: Self) -> bool {
+        self.0 & other.0 == other.0
+    }
+
+    pub fn empty() -> Self {
+        Self(0)
+    }
+
+    pub fn medals(self) -> bool {
+        self.contains(Self::MEDALS)
+    }
+
+    pub fn leaderboard(self) -> bool {
+        self.contains(Self::LEADERBOARD)
+    }
+
+    pub fn badges(self) -> bool {
+        self.contains(Self::BADGES)
+    }
+
+    pub fn rarity(self) -> bool {
+        self.contains(Self::RARITY)
+    }
+
+    pub fn ranking(self) -> bool {
+        self.contains(Self::RANKING)
+    }
+
+    pub fn extra_badges(self) -> bool {
+        self.contains(Self::EXTRA_BADGES)
+    }
 }
 
 impl Display for Task {
@@ -75,16 +105,6 @@ impl Display for Task {
     }
 }
 
-impl Task {
-    pub fn contains(self, other: Self) -> bool {
-        self.0 & other.0 == other.0
-    }
-
-    pub fn empty() -> Self {
-        Self(0)
-    }
-}
-
 impl FromStr for Task {
     type Err = Report;
 
@@ -123,12 +143,12 @@ impl FromStr for Task {
         }
 
         if res.0 == 0 {
-            let err = Report::msg(format!(
-                "Failed to parse tasks `{s}`; must contain either of the following: \n\
+            let msg = format!(
+                "Failed to parse task `{s}`; must contain either of the following: \n\
                 default, full, medal, leaderboard, rarity, badge, extra"
-            ));
+            );
 
-            Err(err)
+            Err(Report::msg(msg))
         } else {
             Ok(res)
         }

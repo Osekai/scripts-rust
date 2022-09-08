@@ -22,6 +22,7 @@ mod logging;
 mod model;
 mod schedule;
 mod task;
+mod util;
 
 #[derive(Parser)]
 #[clap(author, about = DESCRIPTION)]
@@ -85,7 +86,7 @@ async fn async_main() -> Result<()> {
     let ctx = Context::new().await.context("failed to create context")?;
 
     tokio::select! {
-        _ = ctx.run(args) => unreachable!(),
+        _ = ctx.loop_forever(args) => unreachable!(),
         res = signal::ctrl_c() => match res {
             Ok(_) => info!("Received Ctrl+C"),
             Err(err) => error!("{:?}", Report::new(err).wrap_err("Failed to await ctrl+c")),

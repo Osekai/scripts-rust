@@ -3,7 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::model::{Badge, IntHasher};
+use crate::{model::Badge, util::IntHasher};
 
 use super::Context;
 

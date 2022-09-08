@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use eyre::{Context as _, Result};
 use rosu_v2::prelude::GameMode;
 
-use crate::model::{IntHasher, UserFull};
+use crate::{model::UserFull, util::IntHasher};
 
 use super::Context;
 
@@ -22,6 +22,8 @@ impl Context {
 
     /// Makes 800 requests to the osu!api, very expensive call!
     pub async fn get_leaderboard_user_ids(&self) -> Result<HashSet<u32, IntHasher>> {
+        info!("Requesting all leaderboard pages of all modes...");
+
         let modes = [
             GameMode::Osu,
             GameMode::Taiko,
@@ -44,6 +46,8 @@ impl Context {
 
                 user_ids.extend(rankings.ranking.into_iter().map(|user| user.user_id));
             }
+
+            info!("Finished requesting all leaderboard pages for {mode:?}");
         }
 
         Ok(user_ids)

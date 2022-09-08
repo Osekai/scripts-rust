@@ -12,8 +12,9 @@ use tokio::time::{interval, sleep};
 use crate::{
     client::Client,
     config::Config,
-    model::{Badge, IntHasher, RankingUser},
+    model::{Badge, RankingUser},
     task::Task,
+    util::IntHasher,
     Args,
 };
 
@@ -41,20 +42,18 @@ impl Context {
         Ok(Self { client, osu })
     }
 
-    pub async fn run(self, args: Args) {
+    pub async fn loop_forever(self, args: Args) {
         if args.initial_delay > 0 {
             let duration = Duration::from_secs(args.initial_delay * 60);
             sleep(duration).await;
         }
-
-        let schedule = &Config::get().schedule;
 
         info!("First task starting now...");
 
         let duration = Duration::from_secs(args.task_interval * 60 * 60);
         let mut interval = interval(duration);
 
-        for task in schedule.cycle() {
+        for task in Config::get().schedule.cycle() {
             interval.tick().await;
             let start = Instant::now();
 
@@ -67,29 +66,37 @@ impl Context {
         }
     }
 
-    async fn iteration(&self, task: Task) {
+    pub async fn iteration(&self, task: Task) {
         info!("Starting task `{task}`");
 
-        let mut user_ids = match self.get_leaderboard_user_ids().await {
-            Ok(user_ids) => user_ids,
-            Err(err) => {
-                error!("{:?}", err.wrap_err("Failed to get leaderboard users"));
+        let mut user_ids = if task.leaderboard() {
+            match self.get_leaderboard_user_ids().await {
+                Ok(user_ids) => user_ids,
+                Err(err) => {
+                    error!("{:?}", err.wrap_err("Failed to get leaderboard users"));
 
-                HashSet::with_hasher(IntHasher)
+                    HashSet::with_hasher(IntHasher)
+                }
             }
+        } else {
+            HashSet::with_hasher(IntHasher)
         };
 
         if let Err(err) = self.gather_more_users(&mut user_ids).await {
             error!("{:?}", err.wrap_err("Failed to gather more users"));
         }
 
-        let (all_badges, check_badges) = match self.gather_badges().await {
-            Ok(badges) => (badges, true),
-            Err(err) => {
-                error!("{:?}", err.wrap_err("Failed to gather badges"));
+        let (all_badges, check_badges) = if task.badges() {
+            match self.gather_badges().await {
+                Ok(badges) => (badges, true),
+                Err(err) => {
+                    error!("{:?}", err.wrap_err("Failed to gather badges"));
 
-                (HashMap::new(), false)
+                    (HashMap::new(), false)
+                }
             }
+        } else {
+            (HashMap::new(), false)
         };
 
         let mut users = Vec::with_capacity(user_ids.len());
@@ -152,36 +159,46 @@ impl Context {
             }
         }
 
-        match self.gather_medals().await {
-            Ok(medals) => {
-                match self.client.upload_medals(&medals).await {
-                    Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
-                    Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
-                }
+        if task.medals() {
+            match self.gather_medals().await {
+                Ok(medals) => {
+                    match self.client.upload_medals(&medals).await {
+                        Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
+                        Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
+                    }
 
-                let rarities = Self::calculate_medal_rarity(&users, &medals);
+                    if task.rarity() {
+                        let rarities = Self::calculate_medal_rarity(&users, &medals);
 
-                match self.client.upload_rarity(&rarities).await {
-                    Ok(_) => info!("Successfully uploaded {} medal rarities", rarities.len()),
-                    Err(err) => error!("{:?}", err.wrap_err("Failed to upload medal rarities")),
+                        match self.client.upload_rarity(&rarities).await {
+                            Ok(_) => {
+                                info!("Successfully uploaded {} medal rarities", rarities.len())
+                            }
+                            Err(err) => {
+                                error!("{:?}", err.wrap_err("Failed to upload medal rarities"))
+                            }
+                        }
+                    }
                 }
+                Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
             }
-            Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
         }
 
-        match self.gather_rarities().await {
-            Ok(rarities) => {
-                let ranking: Vec<_> = users
-                    .into_iter()
-                    .map(|user| RankingUser::new(user, &rarities))
-                    .collect();
+        if task.ranking() {
+            match self.gather_rarities().await {
+                Ok(rarities) => {
+                    let ranking: Vec<_> = users
+                        .into_iter()
+                        .map(|user| RankingUser::new(user, &rarities))
+                        .collect();
 
-                match self.client.upload_ranking(&ranking).await {
-                    Ok(_) => info!("Successfully uploaded {} ranking entries", ranking.len()),
-                    Err(err) => error!("{:?}", err.wrap_err("Failed to upload ranking")),
+                    match self.client.upload_ranking(&ranking).await {
+                        Ok(_) => info!("Successfully uploaded {} ranking entries", ranking.len()),
+                        Err(err) => error!("{:?}", err.wrap_err("Failed to upload ranking")),
+                    }
                 }
+                Err(err) => error!("{:?}", err.wrap_err("Failed to gather rarities")),
             }
-            Err(err) => error!("{:?}", err.wrap_err("Failed to gather rarities")),
         }
 
         match self.client.finish_uploading().await {

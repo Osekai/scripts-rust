@@ -1,6 +1,9 @@
 use std::{collections::HashMap, string::FromUtf8Error};
 
-use crate::model::{IntHasher, MedalRarity, ScrapedMedal, ScrapedUser, UserFull};
+use crate::{
+    model::{MedalRarity, ScrapedMedal, ScrapedUser, UserFull},
+    util::IntHasher,
+};
 
 use super::Context;
 

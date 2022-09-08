@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::HashMap};
 
 use rosu_v2::prelude::{Badge, MedalCompact, User};
 
-use super::IntHasher;
+use crate::util::IntHasher;
 
 pub struct UserFull {
     pub(super) inner: [User; 4],

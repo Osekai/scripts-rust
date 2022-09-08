@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
-use super::{IntHasher, UserFull};
+use crate::util::IntHasher;
+
+use super::UserFull;
 
 #[derive(Serialize)]
 pub struct RankingUser {
