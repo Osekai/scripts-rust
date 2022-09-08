@@ -92,6 +92,8 @@ data example
 ```
 should be literally every user
 
+### GET down_memvers.php
+returns every member in osekai (every user who's ever logged in over the last two years) - should be combined with leaderboards for full reprocessing
 
 ### GET finish.php
 
