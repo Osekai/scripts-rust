@@ -5,7 +5,6 @@ use std::{
 
 const BACKLOG_LEN: usize = 200;
 
-#[derive(Clone, Debug)]
 /// Limited capacity queue of time instances.
 pub struct Eta {
     queue: Vec<Instant>,
@@ -13,7 +12,7 @@ pub struct Eta {
     /// Otherwise, it has no meaning.
     end: usize,
     /// Amount of elements in the queue. This is equal to `end + 1`
-    /// if the queue is not full, or `N` otherwise.
+    /// if the queue is not full, or `BACKLOG_LEN` otherwise.
     len: usize,
 }
 

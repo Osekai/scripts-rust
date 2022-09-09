@@ -12,7 +12,7 @@ use crate::{
     config::Config,
     model::{Badges, RankingUser, ScrapedMedal, UserFull},
     task::Task,
-    util::IntHasher,
+    util::{Eta, IntHasher},
     Args,
 };
 
@@ -139,8 +139,6 @@ impl Context {
     #[cfg(not(feature = "generate"))]
     async fn gather_users_and_badges(&self, task: Task, extras: &[u32]) -> (Vec<UserFull>, Badges) {
         // Retrieve users from the leaderboards if necessary, otherwise start blank
-
-        use crate::util::Eta;
         let mut user_ids = if task.leaderboard() {
             match self.request_leaderboards().await {
                 Ok(user_ids) => user_ids,
