@@ -1,7 +1,7 @@
 use std::fmt::Result as FmtResult;
 
 use time::{format_description::FormatItem, macros::format_description};
-use tracing::{Event, Subscriber};
+use tracing::{metadata::LevelFilter, Event, Subscriber};
 use tracing_appender::{
     non_blocking::{NonBlocking, WorkerGuard},
     rolling,
@@ -30,7 +30,9 @@ pub fn init(quiet: bool) -> WorkerGuard {
     let filter = if quiet {
         EnvFilter::default()
     } else {
-        EnvFilter::from_default_env()
+        EnvFilter::builder()
+            .with_default_directive(LevelFilter::INFO.into())
+            .from_env_lossy()
     };
 
     let subscriber = FmtSubscriber::builder()
