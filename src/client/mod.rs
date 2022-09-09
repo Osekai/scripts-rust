@@ -14,6 +14,7 @@ use serde::Serialize;
 use crate::{
     config::Config,
     model::{Badges, MedalRarities, RankingUser, ScrapedMedal},
+    task::Task,
 };
 
 use self::{bytes::BodyBytes, multipart::Multipart};
@@ -108,10 +109,10 @@ impl Client {
     }
 
     /// Notify osekai that the upload iteration is finished
-    pub async fn finish_uploading(&self) -> Result<Bytes> {
+    pub async fn finish_uploading(&self, task: Task) -> Result<Bytes> {
         let url = format!("{base}finish.php", base = Config::get().url_base);
 
-        self.send_get_request(&url).await
+        self.send_post_request(&url, &task).await
     }
 
     async fn send_get_request(&self, url: impl AsRef<str>) -> Result<Bytes> {

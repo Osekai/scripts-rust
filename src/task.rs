@@ -5,16 +5,17 @@ use std::{
 };
 
 use eyre::Report;
+use serde::{Serialize, Serializer};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Task(u8);
 
 #[rustfmt::skip]
 impl Task {
-    pub const MEDALS: Self =       Self(1 << 0);
-    pub const BADGES: Self =       Self(1 << 1);
-    pub const RARITY: Self =       Self(1 << 2);
-    pub const RANKING: Self =      Self(1 << 3);
+    pub const MEDALS: Self =  Self(1 << 0);
+    pub const BADGES: Self =  Self(1 << 1);
+    pub const RARITY: Self =  Self(1 << 2);
+    pub const RANKING: Self = Self(1 << 3);
 
     pub const DEFAULT: Self =
         Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RARITY.0 | Self::RANKING.0);
@@ -169,5 +170,12 @@ impl Not for Task {
     #[inline]
     fn not(self) -> Self::Output {
         Self(!self.0)
+    }
+}
+
+impl Serialize for Task {
+    #[inline]
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(self)
     }
 }

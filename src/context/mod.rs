@@ -111,7 +111,7 @@ impl Context {
         }
 
         // Notify osekai that we're done uploading
-        match self.client.finish_uploading().await {
+        match self.client.finish_uploading(task).await {
             Ok(_) => info!("Successfully finished uploading"),
             Err(err) => error!("{:?}", err.wrap_err("Failed to finish uploading")),
         }
