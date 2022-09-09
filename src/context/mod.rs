@@ -139,6 +139,8 @@ impl Context {
     #[cfg(not(feature = "generate"))]
     async fn gather_users_and_badges(&self, task: Task, extras: &[u32]) -> (Vec<UserFull>, Badges) {
         // Retrieve users from the leaderboards if necessary, otherwise start blank
+
+        use crate::util::Eta;
         let mut user_ids = if task.leaderboard() {
             match self.request_leaderboards().await {
                 Ok(user_ids) => user_ids,
@@ -167,6 +169,7 @@ impl Context {
         let len = user_ids.len();
         let mut users = Vec::with_capacity(len);
         let mut badges = Badges::with_capacity(10_000);
+        let mut eta = Eta::default();
 
         info!("Requesting {len} users...");
 
@@ -191,9 +194,13 @@ impl Context {
             }
 
             users.push(user);
+            eta.tick();
 
-            if i % 1000 == 0 {
-                info!("User progress: {i}/{len}");
+            if i % 100 == 0 {
+                info!(
+                    "User progress: {i}/{len} | Remaining: {}",
+                    eta.estimate(len - i),
+                );
             }
         }
 
