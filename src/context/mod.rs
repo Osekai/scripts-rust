@@ -4,13 +4,14 @@ use std::{
 };
 
 use eyre::{Context as _, Report, Result};
+use rosu_v2::prelude::OsuError;
 use rosu_v2::Osu;
 use tokio::time::{interval, sleep};
 
 use crate::{
     client::Client,
     config::Config,
-    model::{Badges, RankingUser, ScrapedMedal, UserFull},
+    model::{Badges, Progress, RankingUser, ScrapedMedal, UserFull},
     task::Task,
     util::{Eta, IntHasher},
     Args,
@@ -120,8 +121,6 @@ impl Context {
     #[cfg(not(feature = "generate"))]
     async fn gather_users_and_badges(&self, task: Task, args: &Args) -> (Vec<UserFull>, Badges) {
         // If medals are the only thing that should be updated, requesting users is not necessary
-
-        use crate::model::Progress;
         let mut user_ids = if task != Task::MEDALS {
             // Otherwise request the user ids stored by osekai
             match self.request_osekai_users().await {
@@ -157,6 +156,11 @@ impl Context {
         for (user_id, i) in user_ids.into_iter().zip(1..) {
             let mut user = match self.request_osu_user(user_id).await {
                 Ok(user) => user,
+                Err(OsuError::NotFound) => {
+                    warn!("User {user_id} was not found");
+
+                    continue;
+                }
                 Err(err) => {
                     let wrap = format!("Failed to request user {user_id} from osu!api");
                     error!("{:?}", Report::from(err).wrap_err(wrap));
