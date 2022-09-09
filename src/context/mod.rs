@@ -141,7 +141,7 @@ impl Context {
         }
 
         // In case additional user ids were given through CLI, add them here
-        user_ids.extend(&args.extra);
+        user_ids.extend(&args.extras);
 
         let check_badges = task.badges();
         let len = user_ids.len();
@@ -278,7 +278,7 @@ impl Context {
 async fn log_args_delay(task: Option<Task>, args: &Args) {
     let Args {
         delay,
-        extra,
+        extras,
         interval,
         progress,
         ..
@@ -295,7 +295,7 @@ async fn log_args_delay(task: Option<Task>, args: &Args) {
     }
 
     info!("  - Send progress to osekai while requesting users: {progress}");
-    info!("  - Additional user ids: {extra:?}");
+    info!("  - Additional user ids: {extras:?}");
     info!("");
 
     if args.delay > 0 {

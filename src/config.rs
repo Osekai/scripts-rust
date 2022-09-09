@@ -4,7 +4,7 @@ use eyre::{Context as _, Result};
 use http::Uri;
 use once_cell::sync::OnceCell;
 
-use crate::schedule::Schedule;
+use crate::{schedule::Schedule, util::Args};
 
 static CONFIG: OnceCell<Config> = OnceCell::new();
 
@@ -26,7 +26,33 @@ impl Config {
     }
 }
 
-pub fn init() -> Result<()> {
+pub fn init(args: &mut Args) -> Result<()> {
+    let extra_users = env::var("EXTRA_USERS").unwrap_or_else(|_| {
+        warn!(
+            "missing env variable `EXTRA_USERS`; \
+            will consider this as no extra users"
+        );
+
+        String::new()
+    });
+
+    let extra_users_iter = extra_users
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::parse);
+
+    for extra_user in extra_users_iter {
+        let user = extra_user.with_context(|| {
+            format!(
+                "failed to parse env variable `EXTRA_USERS=\"{extra_users}\"`; \
+                expected a list of comma-separated user ids"
+            )
+        })?;
+
+        args.extras.insert(user);
+    }
+
     let config = Config {
         tokens: Tokens {
             post: env_var("POST_KEY")?,

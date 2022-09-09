@@ -43,9 +43,9 @@ fn main() {
 }
 
 async fn async_main() -> Result<()> {
-    let (args, task) = Args::parse();
+    let (mut args, task) = Args::parse();
     let _log_worker_guard = logging::init(args.quiet);
-    config::init().context("failed to initialize config")?;
+    config::init(&mut args).context("failed to initialize config")?;
 
     let ctx = Context::new().await.context("failed to create context")?;
 

@@ -1,12 +1,14 @@
-use std::ops::BitOr;
+use std::{collections::HashSet, ops::BitOr};
 
 use clap::Parser;
 
 use crate::task::Task;
 
+use super::IntHasher;
+
 pub struct Args {
     pub delay: u64,
-    pub extra: Vec<u32>,
+    pub extras: HashSet<u32, IntHasher>,
     pub interval: u64,
     pub progress: bool,
     pub quiet: bool,
@@ -30,7 +32,7 @@ impl Args {
 
         let args = Args {
             delay,
-            extra,
+            extras: extra.into_iter().collect(),
             interval,
             progress,
             quiet,
