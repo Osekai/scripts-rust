@@ -18,8 +18,8 @@ pub trait Generate {
 }
 
 /// Generate random instances of a type
-pub trait GenerateRange {
-    fn generate_range<R: Rng>(rng: &mut R, range: Range<usize>) -> Self;
+pub trait GenerateRange<Idx> {
+    fn generate_range<R: Rng>(rng: &mut R, range: Range<Idx>) -> Self;
 }
 
 impl Generate for bool {
@@ -34,6 +34,12 @@ macro_rules! impl_generate {
             impl Generate for $ty {
                 fn generate<R: Rng>(rng: &mut R) -> Self {
                     rng.gen()
+                }
+            }
+
+            impl GenerateRange<$ty> for $ty {
+                fn generate_range<R: Rng>(rng: &mut R, range: Range<$ty>) -> Self {
+                    rng.gen_range(range)
                 }
             }
         )*
@@ -52,36 +58,29 @@ impl<T: Generate> Generate for Option<T> {
     }
 }
 
-impl<T: Generate> GenerateRange for Vec<T> {
+impl<T: Generate> GenerateRange<usize> for Vec<T> {
     fn generate_range<R: Rng>(rng: &mut R, range: Range<usize>) -> Self {
-        let len = rng.gen_range(range);
+        let len = GenerateRange::generate_range(rng, range);
 
         (0..len).map(|_| Generate::generate(rng)).collect()
     }
 }
 
-impl<T: Generate> GenerateRange for Option<Vec<T>> {
-    fn generate_range<R: Rng>(rng: &mut R, range: Range<usize>) -> Self {
+impl<T: GenerateRange<Idx>, Idx> GenerateRange<Idx> for Option<T> {
+    fn generate_range<R: Rng>(rng: &mut R, range: Range<Idx>) -> Self {
         rng.gen_bool(0.7)
             .then(|| GenerateRange::generate_range(rng, range))
     }
 }
 
-impl GenerateRange for String {
+impl GenerateRange<usize> for String {
     fn generate_range<R: Rng>(rng: &mut R, range: Range<usize>) -> Self {
-        let len = rng.gen_range(range);
+        let len = GenerateRange::generate_range(rng, range);
 
         (0..len)
             .map(|_| rng.sample(Alphanumeric))
             .map(char::from)
             .collect()
-    }
-}
-
-impl GenerateRange for Option<String> {
-    fn generate_range<R: Rng>(rng: &mut R, range: Range<usize>) -> Self {
-        rng.gen_bool(0.7)
-            .then(|| GenerateRange::generate_range(rng, range))
     }
 }
 
@@ -97,22 +96,23 @@ impl Generate for UserCover {
 
 impl Generate for OffsetDateTime {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        Self::from_unix_timestamp(rng.gen_range(1_000_000..100_000_000)).unwrap()
+        Self::from_unix_timestamp(GenerateRange::generate_range(rng, 1_000_000..100_000_000))
+            .unwrap()
     }
 }
 
 impl Generate for UserKudosu {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
-            available: Generate::generate(rng),
-            total: Generate::generate(rng),
+            available: GenerateRange::generate_range(rng, 0..10_000),
+            total: GenerateRange::generate_range(rng, 0..10_000),
         }
     }
 }
 
 impl Generate for GameMode {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        match rng.gen_range(0_u8..4) {
+        match GenerateRange::generate_range(rng, 0_u8..4) {
             0 => Self::Osu,
             1 => Self::Taiko,
             2 => Self::Catch,
@@ -124,7 +124,7 @@ impl Generate for GameMode {
 
 impl Generate for Playstyle {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        match rng.gen_range(0..4) {
+        match GenerateRange::generate_range(rng, 0..4) {
             0 => Self::Mouse,
             1 => Self::Keyboard,
             2 => Self::Tablet,
@@ -136,7 +136,7 @@ impl Generate for Playstyle {
 
 impl Generate for ProfilePage {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        match rng.gen_range(0..7) {
+        match GenerateRange::generate_range(rng, 0..7) {
             0 => Self::Beatmaps,
             1 => Self::Historical,
             2 => Self::Kudosu,
@@ -152,17 +152,17 @@ impl Generate for ProfilePage {
 impl Generate for AccountHistory {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
-            id: Generate::generate(rng),
+            id: GenerateRange::generate_range(rng, 0..100_000),
             history_type: Generate::generate(rng),
             timestamp: Generate::generate(rng),
-            seconds: Generate::generate(rng),
+            seconds: GenerateRange::generate_range(rng, 0..10_000_000),
         }
     }
 }
 
 impl Generate for HistoryType {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        match rng.gen_range(0..3) {
+        match GenerateRange::generate_range(rng, 0..3) {
             0 => Self::Note,
             1 => Self::Restriction,
             2 => Self::Silence,
@@ -177,7 +177,7 @@ impl Generate for Group {
             color: GenerateRange::generate_range(rng, 3..10),
             description: GenerateRange::generate_range(rng, 5..20),
             has_modes: Generate::generate(rng),
-            id: Generate::generate(rng),
+            id: GenerateRange::generate_range(rng, 0..100_000),
             identifier: GenerateRange::generate_range(rng, 16..17),
             is_probationary: Generate::generate(rng),
             modes: GenerateRange::generate_range(rng, 0..4),
@@ -189,8 +189,8 @@ impl Generate for Group {
 
 impl Generate for Date {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        let year = rng.gen_range(2012..2023);
-        let ordinal = rng.gen_range(1..366);
+        let year = GenerateRange::generate_range(rng, 2012..2023);
+        let ordinal = GenerateRange::generate_range(rng, 1..366);
 
         Self::from_ordinal_date(year, ordinal).unwrap()
     }
@@ -200,7 +200,7 @@ impl Generate for MonthlyCount {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
             start_date: Generate::generate(rng),
-            count: Generate::generate(rng),
+            count: GenerateRange::generate_range(rng, 0..100_000),
         }
     }
 }
@@ -217,11 +217,11 @@ impl Generate for UserPage {
 impl Generate for GradeCounts {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
-            ss: Generate::generate(rng),
-            ssh: Generate::generate(rng),
-            s: Generate::generate(rng),
-            sh: Generate::generate(rng),
-            a: Generate::generate(rng),
+            ss: GenerateRange::generate_range(rng, 0..100_000),
+            ssh: GenerateRange::generate_range(rng, 0..100_000),
+            s: GenerateRange::generate_range(rng, 0..100_000),
+            sh: GenerateRange::generate_range(rng, 0..100_000),
+            a: GenerateRange::generate_range(rng, 0..100_000),
         }
     }
 }
@@ -229,8 +229,8 @@ impl Generate for GradeCounts {
 impl Generate for UserLevel {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
-            current: Generate::generate(rng),
-            progress: Generate::generate(rng),
+            current: GenerateRange::generate_range(rng, 0..120),
+            progress: GenerateRange::generate_range(rng, 0..100),
         }
     }
 }
@@ -238,20 +238,20 @@ impl Generate for UserLevel {
 impl Generate for UserStatistics {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
-            accuracy: Generate::generate(rng),
-            country_rank: Generate::generate(rng),
-            global_rank: Generate::generate(rng),
+            accuracy: GenerateRange::generate_range(rng, 80.0..100.0),
+            country_rank: Some(GenerateRange::generate_range(rng, 1..1_000_000)),
+            global_rank: Some(GenerateRange::generate_range(rng, 1..10_000_000)),
             grade_counts: Generate::generate(rng),
             is_ranked: Generate::generate(rng),
             level: Generate::generate(rng),
-            max_combo: Generate::generate(rng),
-            playcount: Generate::generate(rng),
-            playtime: Generate::generate(rng),
-            pp: Generate::generate(rng),
-            ranked_score: Generate::generate(rng),
-            replays_watched: Generate::generate(rng),
-            total_hits: Generate::generate(rng),
-            total_score: Generate::generate(rng),
+            max_combo: GenerateRange::generate_range(rng, 100..50_000),
+            playcount: GenerateRange::generate_range(rng, 1..1_000_000),
+            playtime: GenerateRange::generate_range(rng, 1..100_000_000),
+            pp: GenerateRange::generate_range(rng, 100.0..25_000.0),
+            ranked_score: GenerateRange::generate_range(rng, 100_000..10_000_000_000_000),
+            replays_watched: GenerateRange::generate_range(rng, 0..100_000_000),
+            total_hits: GenerateRange::generate_range(rng, 1_000..100_000_000),
+            total_score: GenerateRange::generate_range(rng, 1_000_000..100_000_000_000_000),
         }
     }
 }
@@ -271,7 +271,7 @@ impl Generate for MedalCompact {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
             achieved_at: Generate::generate(rng),
-            medal_id: rng.gen_range(1..300),
+            medal_id: GenerateRange::generate_range(rng, 1..300),
         }
     }
 }
@@ -287,7 +287,7 @@ impl Generate for CountryCode {
 
 impl Generate for Username {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        let len = rng.gen_range(3..16);
+        let len = GenerateRange::generate_range(rng, 3_u8..16);
 
         (0..len)
             .map(|_| rng.sample(Alphanumeric))
@@ -300,7 +300,7 @@ impl Generate for User {
     fn generate<R: Rng>(rng: &mut R) -> Self {
         Self {
             avatar_url: GenerateRange::generate_range(rng, 15..25),
-            comments_count: Generate::generate(rng),
+            comments_count: GenerateRange::generate_range(rng, 0..100_000),
             country: GenerateRange::generate_range(rng, 4..15),
             country_code: Generate::generate(rng),
             cover: Generate::generate(rng),
@@ -317,29 +317,29 @@ impl Generate for User {
             kudosu: Generate::generate(rng),
             last_visit: Generate::generate(rng),
             location: GenerateRange::generate_range(rng, 3..10),
-            max_blocks: Generate::generate(rng),
-            max_friends: Generate::generate(rng),
+            max_blocks: GenerateRange::generate_range(rng, 0..10_000),
+            max_friends: GenerateRange::generate_range(rng, 0..10_000),
             mode: Generate::generate(rng),
             occupation: GenerateRange::generate_range(rng, 3..20),
             playstyle: GenerateRange::generate_range(rng, 0..2),
             pm_friends_only: Generate::generate(rng),
-            forum_post_count: Generate::generate(rng),
+            forum_post_count: GenerateRange::generate_range(rng, 0..100_000),
             profile_color: GenerateRange::generate_range(rng, 3..10),
             profile_order: GenerateRange::generate_range(rng, 7..8),
             title: GenerateRange::generate_range(rng, 4..15),
             title_url: GenerateRange::generate_range(rng, 15..20),
             twitter: GenerateRange::generate_range(rng, 3..15),
-            user_id: Generate::generate(rng),
+            user_id: GenerateRange::generate_range(rng, 2..3_000_000),
             username: Generate::generate(rng),
             website: GenerateRange::generate_range(rng, 10..20),
             account_history: GenerateRange::generate_range(rng, 0..25),
             badges: Some(GenerateRange::generate_range(rng, 0..20)),
-            beatmap_playcounts_count: Generate::generate(rng),
-            favourite_mapset_count: Generate::generate(rng),
-            follower_count: Generate::generate(rng),
-            graveyard_mapset_count: Generate::generate(rng),
+            beatmap_playcounts_count: GenerateRange::generate_range(rng, 1..100_000),
+            favourite_mapset_count: GenerateRange::generate_range(rng, 1..100_000),
+            follower_count: GenerateRange::generate_range(rng, 1..10_000_000),
+            graveyard_mapset_count: GenerateRange::generate_range(rng, 1..100_000),
             groups: GenerateRange::generate_range(rng, 0..3),
-            guest_mapset_count: Generate::generate(rng),
+            guest_mapset_count: GenerateRange::generate_range(rng, 1..100_000),
             is_admin: Generate::generate(rng),
             is_bng: Generate::generate(rng),
             is_full_bn: Generate::generate(rng),
@@ -348,20 +348,20 @@ impl Generate for User {
             is_moderator: Generate::generate(rng),
             is_nat: Generate::generate(rng),
             is_silenced: Generate::generate(rng),
-            loved_mapset_count: Generate::generate(rng),
-            mapping_follower_count: Generate::generate(rng),
+            loved_mapset_count: GenerateRange::generate_range(rng, 1..100_000),
+            mapping_follower_count: GenerateRange::generate_range(rng, 1..10_000_000),
             monthly_playcounts: GenerateRange::generate_range(rng, 90..91),
             page: Generate::generate(rng),
             previous_usernames: None,
             rank_history: GenerateRange::generate_range(rng, 90..91),
-            ranked_mapset_count: Generate::generate(rng),
+            ranked_mapset_count: GenerateRange::generate_range(rng, 1..100_000),
             replays_watched_counts: GenerateRange::generate_range(rng, 20..91),
-            scores_best_count: Generate::generate(rng),
-            scores_first_count: Generate::generate(rng),
-            scores_recent_count: Generate::generate(rng),
+            scores_best_count: GenerateRange::generate_range(rng, 1..100),
+            scores_first_count: GenerateRange::generate_range(rng, 1..100_000),
+            scores_recent_count: GenerateRange::generate_range(rng, 1..100),
             statistics: Generate::generate(rng),
-            support_level: Generate::generate(rng),
-            pending_mapset_count: Generate::generate(rng),
+            support_level: GenerateRange::generate_range(rng, 0..8),
+            pending_mapset_count: GenerateRange::generate_range(rng, 1..100_000),
             medals: Some(GenerateRange::generate_range(rng, 15..270)),
         }
     }

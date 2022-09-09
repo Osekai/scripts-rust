@@ -1,15 +1,7 @@
-use std::{
-    collections::HashSet,
-    fmt::{Formatter, Result as FmtResult},
-};
+use std::collections::HashSet;
 
-use eyre::{Context as _, Result};
+use eyre::{Context as _, Report, Result};
 use rosu_v2::prelude::{GameMode, OsuError};
-use serde::{
-    de::{Error as SerdeError, SeqAccess, Unexpected, Visitor},
-    Deserialize, Deserializer as _,
-};
-use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{
     model::UserFull,
@@ -31,9 +23,14 @@ impl Context {
             .map(UserFull::from)
     }
 
-    /// Request all leaderboard pages for all four modes for a total of
-    /// 800 requests - expensive call!
-    pub async fn request_leaderboards(&self) -> Result<HashSet<u32, IntHasher>> {
+    /// Request leaderboard pages for all four modes and collect user ids.
+    ///
+    /// If `max_page` is not set, it defauls to 200 i.e. all pages.
+    pub async fn request_leaderboards(
+        &self,
+        user_ids: &mut HashSet<u32, IntHasher>,
+        max_page: Option<u32>,
+    ) {
         info!("Requesting all leaderboard pages of all modes...");
 
         let modes = [
@@ -43,82 +40,53 @@ impl Context {
             GameMode::Mania,
         ];
 
-        let mut user_ids = HashSet::with_capacity_and_hasher(30_000, IntHasher);
+        let max_page = max_page.map_or(200, |page| page.min(200));
+        user_ids.reserve(20_000);
         let mut eta = Eta::default();
 
-        for (i, mode) in modes.into_iter().enumerate() {
-            for page in 1..=200 {
-                let rankings = self
-                    .osu
-                    .performance_rankings(mode)
-                    .page(page)
-                    .await
-                    .with_context(|| {
-                        format!("failed to retrieve leaderboard page {page} for {mode:?}")
-                    })?;
+        for (mode, i) in modes.into_iter().zip(0..) {
+            for page in 1..=max_page {
+                let page_fut = self.osu.performance_rankings(mode).page(page);
+
+                let rankings = match page_fut.await {
+                    Ok(rankings) => rankings,
+                    Err(err) => {
+                        let wrap =
+                            format!("failed to retrieve leaderboard page {page} for {mode:?}");
+                        error!("{:?}", Report::from(err).wrap_err(wrap));
+
+                        continue;
+                    }
+                };
 
                 user_ids.extend(rankings.ranking.into_iter().map(|user| user.user_id));
                 eta.tick();
 
                 if page % 50 == 0 {
-                    let curr = i * 200 + page as usize;
+                    let curr = i * 200 + page;
                     info!(
-                        "Leaderboard progress: {curr}/800 | Remaining: {}",
-                        eta.estimate(800 - curr),
+                        "Leaderboard progress: {curr}/{max_page} | Remaining: {}",
+                        eta.estimate((max_page - curr) as usize),
                     );
                 }
             }
 
             info!("Finished requesting all leaderboard pages for {mode:?}");
         }
-
-        Ok(user_ids)
     }
 
     /// Request all user ids stored by osekai
-    pub async fn request_osekai_users(&self, users: &mut HashSet<u32, IntHasher>) -> Result<()> {
+    pub async fn request_osekai_users(&self) -> Result<HashSet<u32, IntHasher>> {
         let bytes = self
             .client
             .get_osekai_members()
             .await
             .context("failed to get osekai members")?;
 
-        Deserializer::new(SliceRead::new(&bytes))
-            .deserialize_seq(ExtendUsersVisitor(users))
-            .with_context(|| {
-                let text = String::from_utf8_lossy(&bytes);
+        serde_json::from_slice(&bytes).with_context(|| {
+            let text = String::from_utf8_lossy(&bytes);
 
-                format!("failed to deserialize osekai members: {text}")
-            })
-    }
-}
-
-struct ExtendUsersVisitor<'u>(&'u mut HashSet<u32, IntHasher>);
-
-impl<'de> Visitor<'de> for ExtendUsersVisitor<'_> {
-    type Value = ();
-
-    #[inline]
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str(r#"a list of `{"Id": "<number>"}` objects"#)
-    }
-
-    #[inline]
-    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
-        #[derive(Deserialize)]
-        struct IdEntry<'s> {
-            #[serde(rename = "Id")]
-            id: &'s str,
-        }
-
-        while let Some(IdEntry { id }) = seq.next_element()? {
-            let id = id
-                .parse()
-                .map_err(|_| SerdeError::invalid_value(Unexpected::Str(id), &"an integer"))?;
-
-            self.0.insert(id);
-        }
-
-        Ok(())
+            format!("failed to deserialize osekai members: {text}")
+        })
     }
 }

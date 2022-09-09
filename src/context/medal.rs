@@ -36,6 +36,21 @@ impl Context {
         Ok(deserialized.medals)
     }
 
+    /// Request all medal rarities stored by osekai
+    pub async fn request_osekai_rarities(&self) -> Result<MedalRarities> {
+        let bytes = self
+            .client
+            .get_osekai_rarities()
+            .await
+            .context("failed to get osekai rarities")?;
+
+        serde_json::from_slice(&bytes).with_context(|| {
+            let text = String::from_utf8_lossy(&bytes);
+
+            format!("failed to deserialize osekai rarities: {text}")
+        })
+    }
+
     /// Calculate each medal's rarity i.e. how many users obtained it
     pub fn calculate_rarities(users: &[UserFull], medals: &[ScrapedMedal]) -> MedalRarities {
         let mut counts = HashMap::with_capacity_and_hasher(200, IntHasher);

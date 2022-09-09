@@ -77,11 +77,9 @@ process it, and upload it to osekai.
 
 Task values:
   - medals: A full list of medals will be retrieved and uploaded.
-  - leaderboard: In addition to osekai's users, the top 10,000
-      leaderboard users for all modes will be retrieved.
-  - rarity: Based on available users, medal rarities will be
-      calculated and uploaded.
+  - rarity: Retrieve the top 10,000 users for all modes to
+      calculate medal rarities and upload them.
   - ranking: Process all users and upload them.
   - badges: Collect badges of all available users and upload them.
-  - default: medals | rarity | ranking | badges
-  - full: medals | rarity | ranking | badges | leaderboard"#;
+  - default: medals | ranking | badges
+  - full: medals | ranking | badges | rarity"#;

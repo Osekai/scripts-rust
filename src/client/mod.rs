@@ -71,6 +71,14 @@ impl Client {
         self.send_get_request(url).await
     }
 
+    /// Request all medal rarities stored by osekai
+    pub async fn get_osekai_rarities(&self) -> Result<Bytes> {
+        let base = &Config::get().url_base;
+        let url = format!("{base}down_medals_rarity.php.php",);
+
+        self.send_get_request(url).await
+    }
+
     /// Upload medals to osekai
     pub async fn upload_medals(&self, medals: &[ScrapedMedal]) -> Result<Bytes> {
         let url = format!("{base}up_medals.php", base = Config::get().url_base);

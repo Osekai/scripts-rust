@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 
 use super::{MedalRarities, UserFull};
 
@@ -13,6 +13,10 @@ pub struct RankingUser {
     pub ctb_pp: f32,
     pub mania_pp: f32,
     pub medal_count: usize,
+    #[serde(
+        rename(serialize = "rarest_medal"),
+        serialize_with = "serialize_rarest"
+    )]
     pub rarest_medal_id: Option<u32>,
     pub country_code: String,
     pub standard_global: Option<u32>,
@@ -69,4 +73,8 @@ impl RankingUser {
             avatar_url: std.avatar_url,
         }
     }
+}
+
+fn serialize_rarest<S: Serializer>(opt: &Option<u32>, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_u32(opt.unwrap_or(0))
 }

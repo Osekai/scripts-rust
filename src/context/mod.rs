@@ -119,12 +119,13 @@ impl Context {
 
     #[cfg(not(feature = "generate"))]
     async fn gather_users_and_badges(&self, task: Task, args: &Args) -> (Vec<UserFull>, Badges) {
-        // Retrieve users from the leaderboards if necessary, otherwise start blank
-        let mut user_ids = if task.leaderboard() {
-            match self.request_leaderboards().await {
-                Ok(user_ids) => user_ids,
+        // If medals are the only thing that should be updated, requesting users is not necessary
+        let mut user_ids = if task != Task::MEDALS {
+            // Otherwise request the user ids stored by osekai
+            match self.request_osekai_users().await {
+                Ok(users) => users,
                 Err(err) => {
-                    error!("{:?}", err.wrap_err("Failed to get leaderboard users"));
+                    error!("{:?}", err.wrap_err("Failed to request osekai users"));
 
                     HashSet::with_hasher(IntHasher)
                 }
@@ -133,12 +134,9 @@ impl Context {
             HashSet::with_hasher(IntHasher)
         };
 
-        // If medals are the only thing that should be updated, requesting users is not necessary
-        if task != Task::MEDALS {
-            // Otherwise request the user ids stored by osekai
-            if let Err(err) = self.request_osekai_users(&mut user_ids).await {
-                error!("{:?}", err.wrap_err("Failed to gather more users"));
-            }
+        // Retrieve users from the leaderboards if necessary
+        if task.rarity() {
+            self.request_leaderboards(&mut user_ids, None).await;
         }
 
         // In case additional user ids were given through CLI, add them here
@@ -210,8 +208,11 @@ impl Context {
         #[allow(unused_mut)] mut users: Vec<UserFull>,
         medals: &[ScrapedMedal],
     ) {
-        // If rarities are required, calculate them, otherwise just return
-        let rarities = if !users.is_empty() && (task.rarity() || task.ranking()) {
+        let rarities = if users.is_empty() {
+            return;
+        } else if task.rarity() {
+            // Leaderboard users were gathered so we can calculate proper rarities
+
             #[cfg(feature = "generate")]
             {
                 // Make sure that all medal ids are valid if they were randomly generated
@@ -226,6 +227,17 @@ impl Context {
             }
 
             Self::calculate_rarities(&users, medals)
+        } else if task.ranking() {
+            // Only osekai users were retrieved, dont calculate rarities
+            // and instead just request them from osekai
+            match self.request_osekai_rarities().await {
+                Ok(rarities) => rarities,
+                Err(err) => {
+                    let err = err.wrap_err("Failed to request osekai medal rarities");
+
+                    return error!("{err:?}");
+                }
+            }
         } else {
             return;
         };

@@ -12,10 +12,9 @@ pub struct Task(u8);
 #[rustfmt::skip]
 impl Task {
     pub const MEDALS: Self =       Self(1 << 0);
-    pub const LEADERBOARD: Self =  Self(1 << 1);
-    pub const BADGES: Self =       Self(1 << 2);
-    pub const RARITY: Self =       Self(1 << 3);
-    pub const RANKING: Self =      Self(1 << 4);
+    pub const BADGES: Self =       Self(1 << 1);
+    pub const RARITY: Self =       Self(1 << 2);
+    pub const RANKING: Self =      Self(1 << 3);
 
     pub const DEFAULT: Self =
         Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RARITY.0 | Self::RANKING.0);
@@ -38,11 +37,6 @@ impl Task {
     /// Should all medals be retrieved and uploaded?
     pub fn medals(self) -> bool {
         self.contains(Self::MEDALS)
-    }
-
-    /// Should the top 10k users for all modes be requested?
-    pub fn leaderboard(self) -> bool {
-        self.contains(Self::LEADERBOARD)
     }
 
     /// Should badges be processed and uploaded?
@@ -85,16 +79,6 @@ impl Display for Task {
             f.write_str("Medals")?;
             found = true;
             task.remove(Self::MEDALS);
-        }
-
-        if task.contains(Self::LEADERBOARD) {
-            if found {
-                f.write_str(" | ")?;
-            }
-
-            f.write_str("Leaderboard")?;
-            found = true;
-            task.remove(Self::LEADERBOARD);
         }
 
         if task.contains(Self::BADGES) {
@@ -141,14 +125,13 @@ impl FromStr for Task {
                 "default" => Ok(res | Self::DEFAULT),
                 "full" => Ok(res | Self::FULL),
                 "medal" | "medals" => Ok(res | Self::MEDALS),
-                "leaderboard" | "lb" => Ok(res | Self::LEADERBOARD),
                 "rarity" | "rarities" => Ok(res | Self::RARITY),
                 "ranking" => Ok(res | Self::RANKING),
                 "badge" | "badges" => Ok(res | Self::BADGES),
                 _ => {
                     let msg = format!(
                         "failed to parse task `{s}`; must be a `|`-separated list of the following: \
-                        default, full, medal, leaderboard, rarity, badge"
+                        default, full, medal, rarity, badge"
                     );
 
                     Err(Report::msg(msg))
