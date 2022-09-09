@@ -51,7 +51,7 @@ impl Context {
             sleep(duration).await;
         }
 
-        self.iteration(task, &args.extra).await;
+        self.iteration(task, &args).await;
 
         info!("Finished task {task}");
     }
@@ -89,7 +89,7 @@ impl Context {
             interval.tick().await;
             let start = Instant::now();
 
-            self.iteration(task, &args.extra).await;
+            self.iteration(task, &args).await;
 
             let end = Instant::now();
             let next = interval.period() - (end - start);
@@ -99,10 +99,10 @@ impl Context {
     }
 
     /// Runs one single iteration based on the task
-    async fn iteration(&self, task: Task, extras: &[u32]) {
+    async fn iteration(&self, task: Task, args: &Args) {
         info!("Starting task `{task}`");
 
-        let (users, badges) = self.gather_users_and_badges(task, extras).await;
+        let (users, badges) = self.gather_users_and_badges(task, args).await;
 
         // Upload badges if required
         if !badges.is_empty() && task.badges() {
@@ -136,7 +136,7 @@ impl Context {
     }
 
     #[cfg(not(feature = "generate"))]
-    async fn gather_users_and_badges(&self, task: Task, extras: &[u32]) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, task: Task, args: &Args) -> (Vec<UserFull>, Badges) {
         // Retrieve users from the leaderboards if necessary, otherwise start blank
         let mut user_ids = if task.leaderboard() {
             match self.request_leaderboards().await {
@@ -160,7 +160,7 @@ impl Context {
         }
 
         // In case additional user ids were given through CLI, add them here
-        user_ids.extend(extras);
+        user_ids.extend(&args.extra);
 
         let check_badges = task.badges();
         let len = user_ids.len();
@@ -193,6 +193,8 @@ impl Context {
             users.push(user);
             eta.tick();
 
+            // TODO: send progress to osekai if args.progress
+
             if i % 100 == 0 {
                 info!(
                     "User progress: {i}/{len} | Remaining: {}",
@@ -206,7 +208,7 @@ impl Context {
 
     #[cfg(feature = "generate")]
     /// Generate users with random dummy values
-    async fn gather_users_and_badges(&self, _: Task, _: &[u32]) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, _: Task, _: &Args) -> (Vec<UserFull>, Badges) {
         debug!("Start generating users...");
 
         let mut rng = rand::thread_rng();

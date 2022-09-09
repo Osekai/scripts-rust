@@ -5,9 +5,10 @@ use clap::Parser;
 use crate::task::Task;
 
 pub struct Args {
+    pub delay: u64,
     pub extra: Vec<u32>,
     pub interval: u64,
-    pub delay: u64,
+    pub progress: bool,
     pub quiet: bool,
 }
 
@@ -17,6 +18,7 @@ impl Args {
             extra,
             interval,
             initial_delay,
+            progress,
             quiet,
             task,
         } = ArgsCli::parse();
@@ -27,9 +29,10 @@ impl Args {
         let delay = initial_delay.unwrap_or_else(|| task.is_none() as u64);
 
         let args = Args {
+            delay,
             extra,
             interval,
-            delay,
+            progress,
             quiet,
         };
 
@@ -49,6 +52,9 @@ struct ArgsCli {
     #[clap(long, value_name = "MINUTES")]
     /// Time until the first task is started
     initial_delay: Option<u64>,
+    #[clap(short, long, action)]
+    /// Set this if progression should be sent to osekai
+    progress: bool,
     #[clap(short, long, action)]
     /// Set this if no logs should be displayed
     quiet: bool,
