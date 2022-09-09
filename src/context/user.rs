@@ -11,7 +11,10 @@ use serde::{
 };
 use serde_json::{de::SliceRead, Deserializer};
 
-use crate::{model::UserFull, util::IntHasher};
+use crate::{
+    model::UserFull,
+    util::{Eta, IntHasher},
+};
 
 use super::Context;
 
@@ -41,8 +44,9 @@ impl Context {
         ];
 
         let mut user_ids = HashSet::with_capacity_and_hasher(30_000, IntHasher);
+        let mut eta = Eta::default();
 
-        for mode in modes {
+        for (i, mode) in modes.into_iter().enumerate() {
             for page in 1..=200 {
                 let rankings = self
                     .osu
@@ -54,6 +58,15 @@ impl Context {
                     })?;
 
                 user_ids.extend(rankings.ranking.into_iter().map(|user| user.user_id));
+                eta.tick();
+
+                if page % 50 == 0 {
+                    let curr = i * 200 + page as usize;
+                    info!(
+                        "Leaderboard progress: {curr}/800 | Remaining: {}",
+                        eta.estimate(800 - curr),
+                    );
+                }
             }
 
             info!("Finished requesting all leaderboard pages for {mode:?}");
