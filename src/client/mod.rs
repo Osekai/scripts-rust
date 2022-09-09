@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use crate::{
     config::Config,
-    model::{Badges, MedalRarities, RankingUser, ScrapedMedal},
+    model::{Badges, MedalRarities, Progress, RankingUser, ScrapedMedal},
     task::Task,
 };
 
@@ -106,6 +106,12 @@ impl Client {
         let url = format!("{base}up_badges.php", base = Config::get().url_base);
 
         self.send_post_request(&url, badges).await
+    }
+
+    pub async fn upload_progress(&self, progress: &Progress) -> Result<Bytes> {
+        let url = format!("{base}progression.php", base = Config::get().url_base);
+
+        self.send_post_request(&url, progress).await
     }
 
     /// Notify osekai that the upload iteration is finished

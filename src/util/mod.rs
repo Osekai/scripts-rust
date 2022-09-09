@@ -1,6 +1,6 @@
 pub use self::{
     args::Args,
-    eta::Eta,
+    eta::{Eta, TimeEstimate},
     hasher::{IntHash, IntHasher},
 };
 

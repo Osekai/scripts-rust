@@ -120,6 +120,8 @@ impl Context {
     #[cfg(not(feature = "generate"))]
     async fn gather_users_and_badges(&self, task: Task, args: &Args) -> (Vec<UserFull>, Badges) {
         // If medals are the only thing that should be updated, requesting users is not necessary
+
+        use crate::model::Progress;
         let mut user_ids = if task != Task::MEDALS {
             // Otherwise request the user ids stored by osekai
             match self.request_osekai_users().await {
@@ -173,13 +175,17 @@ impl Context {
             users.push(user);
             eta.tick();
 
-            // TODO: send progress to osekai if args.progress
-
             if i % 100 == 0 {
-                info!(
-                    "User progress: {i}/{len} | Remaining: {}",
-                    eta.estimate(len - i),
-                );
+                let remaining = eta.estimate(len - i);
+                info!("User progress: {i}/{len} | ETA: {remaining}");
+
+                if args.progress {
+                    let progress = Progress::new(i, len, remaining);
+
+                    if let Err(err) = self.client.upload_progress(&progress).await {
+                        error!("{:?}", err.wrap_err("Failed to upload progress"));
+                    }
+                }
             }
         }
 

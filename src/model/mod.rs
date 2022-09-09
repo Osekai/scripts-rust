@@ -1,5 +1,6 @@
 pub use self::{
     badge::{BadgeEntry, Badges},
+    progress::Progress,
     ranking::RankingUser,
     rarity::{MedalRarities, MedalRarityEntry},
     scrap::{ScrapedMedal, ScrapedUser},
@@ -7,6 +8,7 @@ pub use self::{
 };
 
 mod badge;
+mod progress;
 mod ranking;
 mod rarity;
 mod scrap;

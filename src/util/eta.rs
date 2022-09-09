@@ -53,6 +53,12 @@ impl Default for Eta {
 
 pub struct TimeEstimate(Option<Duration>);
 
+impl TimeEstimate {
+    pub fn as_seconds(&self) -> Option<u64> {
+        self.0.as_ref().map(Duration::as_secs)
+    }
+}
+
 impl Display for TimeEstimate {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
@@ -64,8 +70,6 @@ impl Display for TimeEstimate {
 
             let minutes = secs / 60;
             secs %= 60;
-
-            f.write_str("~")?;
 
             if hours > 0 {
                 write!(f, "{hours}h{minutes}m")?;
