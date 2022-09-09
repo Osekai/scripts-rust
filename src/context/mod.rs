@@ -40,18 +40,18 @@ impl Context {
     }
 
     /// Runs one iteration and then returns
-    pub async fn run_once(self, task: Task, delay: u64, extras: &[u32]) {
+    pub async fn run_once(self, task: Task, args: Args) {
         info!("Arguments:");
         info!("  - Run a single task: {task}");
-        info!("  - The task will start in {delay} minute(s)");
+        info!("  - The task will start in {} minute(s)", args.delay);
         info!("");
 
-        if delay > 0 {
-            let duration = Duration::from_secs(delay * 60);
+        if args.delay > 0 {
+            let duration = Duration::from_secs(args.delay * 60);
             sleep(duration).await;
         }
 
-        self.iteration(task, extras).await;
+        self.iteration(task, &args.extra).await;
 
         info!("Finished task {task}");
     }
@@ -59,7 +59,6 @@ impl Context {
     /// Runs forever based on the schedule in the .env file
     pub async fn loop_forever(self, args: Args) {
         let schedule = &Config::get().schedule;
-        let delay = args.initial_delay.unwrap_or(1);
 
         info!("Schedule:");
 
@@ -69,15 +68,15 @@ impl Context {
 
         info!("");
         info!("Arguments:");
-        info!("  - The first task will start in {delay} minute(s)");
+        info!("  - The first task will start in {} minute(s)", args.delay);
         info!(
             "  - Tasks will start {} hour(s) after each other",
             args.interval
         );
         info!("");
 
-        if delay > 0 {
-            let duration = Duration::from_secs(delay * 60);
+        if args.delay > 0 {
+            let duration = Duration::from_secs(args.delay * 60);
             sleep(duration).await;
         }
 

@@ -1,8 +1,10 @@
 pub use self::{
+    args::Args,
     eta::Eta,
     hasher::{IntHash, IntHasher},
 };
 
+mod args;
 mod eta;
 mod hasher;
 
