@@ -52,7 +52,7 @@ impl Client {
 
             fs::read("./peppy.html").context("failed to read `./peppy.html`")
         } else {
-            let url = "https://osu.ppy.sh/users/peppy/osu";
+            let url = "https://osu.ppy.sh/users/2/osu";
 
             let bytes = self
                 .send_get_request(url)
