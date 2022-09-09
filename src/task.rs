@@ -18,7 +18,7 @@ impl Task {
     pub const RANKING: Self = Self(1 << 3);
 
     pub const DEFAULT: Self =
-        Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RARITY.0 | Self::RANKING.0);
+        Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RANKING.0);
     pub const FULL: Self = Self(u8::MAX);
 }
 
@@ -45,13 +45,13 @@ impl Task {
         self.contains(Self::BADGES)
     }
 
-    /// Should medal rarities be calculated and uploaded?
+    /// Should the leaderboards be requested so that
+    /// medal rarities are calculated and uploaded?
     pub fn rarity(self) -> bool {
         self.contains(Self::RARITY)
     }
 
-    /// Should medal rarities be calculated and used
-    /// to process and upload user data?
+    /// Should user data be processed and uploaded?
     pub fn ranking(self) -> bool {
         self.contains(Self::RANKING)
     }
@@ -132,7 +132,7 @@ impl FromStr for Task {
                 _ => {
                     let msg = format!(
                         "failed to parse task `{s}`; must be a `|`-separated list of the following: \
-                        default, full, medal, rarity, badge"
+                        default, full, medal, rarity, badge, ranking"
                     );
 
                     Err(Report::msg(msg))
