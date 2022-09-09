@@ -41,15 +41,7 @@ impl Context {
 
     /// Runs one iteration and then returns
     pub async fn run_once(self, task: Task, args: Args) {
-        info!("Arguments:");
-        info!("  - Run a single task: {task}");
-        info!("  - The task will start in {} minute(s)", args.delay);
-        info!("");
-
-        if args.delay > 0 {
-            let duration = Duration::from_secs(args.delay * 60);
-            sleep(duration).await;
-        }
+        log_args_delay(Some(task), &args).await;
 
         self.iteration(task, &args).await;
 
@@ -67,18 +59,8 @@ impl Context {
         }
 
         info!("");
-        info!("Arguments:");
-        info!("  - The first task will start in {} minute(s)", args.delay);
-        info!(
-            "  - Tasks will start {} hour(s) after each other",
-            args.interval
-        );
-        info!("");
 
-        if args.delay > 0 {
-            let duration = Duration::from_secs(args.delay * 60);
-            sleep(duration).await;
-        }
+        log_args_delay(None, &args).await;
 
         info!("First task starting now...");
 
@@ -268,5 +250,33 @@ impl Context {
                 Err(err) => error!("{:?}", err.wrap_err("Failed to upload ranking")),
             }
         }
+    }
+}
+
+async fn log_args_delay(task: Option<Task>, args: &Args) {
+    let Args {
+        delay,
+        extra,
+        interval,
+        progress,
+        ..
+    } = args;
+
+    info!("Arguments:");
+
+    if let Some(task) = task {
+        info!("  - Run a single task: {task}");
+        info!("  - The task will start in {delay} minute(s)");
+    } else {
+        info!("  - The first task will start in {delay} minute(s)");
+        info!("  - Tasks will start {interval} hour(s) after each other");
+    }
+
+    info!("  - Send progress to osekai while requesting users: {progress}");
+    info!("  - Additional user ids: {extra:?}");
+    info!("");
+
+    if args.delay > 0 {
+        sleep(Duration::from_secs(delay * 60)).await;
     }
 }
