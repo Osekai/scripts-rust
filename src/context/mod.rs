@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use eyre::{Context as _, Result};
+use eyre::{Context as _, Report, Result};
 use rosu_v2::Osu;
 use tokio::time::{interval, sleep};
 
@@ -171,13 +171,13 @@ impl Context {
         info!("Requesting {len} users...");
 
         // Request osu! user data for all users for all modes.
-        // The core loop and very expensive
+        // The core loop and very expensive.
         for (user_id, i) in user_ids.into_iter().zip(1..) {
             let mut user = match self.request_osu_user(user_id).await {
                 Ok(user) => user,
                 Err(err) => {
-                    let wrap = format!("Failed to request user {user_id}");
-                    error!("{:?}", err.wrap_err(wrap));
+                    let wrap = format!("Failed to request user {user_id} from osu!api");
+                    error!("{:?}", Report::from(err).wrap_err(wrap));
 
                     continue;
                 }

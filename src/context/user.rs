@@ -4,7 +4,7 @@ use std::{
 };
 
 use eyre::{Context as _, Result};
-use rosu_v2::prelude::GameMode;
+use rosu_v2::prelude::{GameMode, OsuError};
 use serde::{
     de::{Error as SerdeError, SeqAccess, Unexpected, Visitor},
     Deserialize, Deserializer as _,
@@ -17,7 +17,7 @@ use super::Context;
 
 impl Context {
     /// Request user data of a user for all four modes
-    pub async fn request_osu_user(&self, user_id: u32) -> Result<UserFull> {
+    pub async fn request_osu_user(&self, user_id: u32) -> Result<UserFull, OsuError> {
         let osu = self.osu.user(user_id).mode(GameMode::Osu);
         let tko = self.osu.user(user_id).mode(GameMode::Taiko);
         let ctb = self.osu.user(user_id).mode(GameMode::Catch);
@@ -26,7 +26,6 @@ impl Context {
         tokio::try_join!(osu, tko, ctb, mna)
             .map(|(osu, tko, ctb, mna)| [osu, tko, ctb, mna])
             .map(UserFull::from)
-            .context("failed to get user from osu!api")
     }
 
     /// Request all leaderboard pages for all four modes for a total of

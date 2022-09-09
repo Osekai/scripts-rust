@@ -163,7 +163,7 @@ impl Client {
         let status = response.status();
 
         ensure!(
-            !(status.is_client_error() || status.is_server_error()),
+            status.is_success(),
             "failed with status code {status} when requesting url {url}"
         );
 
