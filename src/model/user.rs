@@ -28,9 +28,10 @@ impl UserFull {
     pub fn rarest_medal_id(&self, rarities: &MedalRarities) -> Option<u32> {
         self.medals()?
             .iter()
-            .flat_map(|medal| Some((medal.medal_id, rarities.get(&medal.medal_id)?.count)))
-            .max_by_key(|(_, count)| *count)
-            .map(|(id, _)| id)
+            .map(|medal| medal.medal_id)
+            .flat_map(|medal| Some((medal, rarities.get(&medal)?.count)))
+            .min_by_key(|(_, count)| *count)
+            .map(|(medal, _)| medal)
     }
 
     /// Iterate over the pp values for each mode
