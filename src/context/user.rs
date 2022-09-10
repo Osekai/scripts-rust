@@ -13,14 +13,18 @@ use super::Context;
 impl Context {
     /// Request user data of a user for all four modes
     pub async fn request_osu_user(&self, user_id: u32) -> Result<UserFull, OsuError> {
-        let user = [
-            self.osu.user(user_id).mode(GameMode::Osu).await?,
-            self.osu.user(user_id).mode(GameMode::Taiko).await?,
-            self.osu.user(user_id).mode(GameMode::Catch).await?,
-            self.osu.user(user_id).mode(GameMode::Mania).await?,
-        ];
+        // Make a single non-concurrent request first for the case that the user
+        // returns a 404 and other requests would have been unnecessary
+        let std = self.osu.user(user_id).mode(GameMode::Osu).await?;
 
-        Ok(UserFull::from(user))
+        // Return the remaining modes concurrently
+        let (tko, ctb, mna) = tokio::try_join!(
+            self.osu.user(user_id).mode(GameMode::Taiko),
+            self.osu.user(user_id).mode(GameMode::Catch),
+            self.osu.user(user_id).mode(GameMode::Mania),
+        )?;
+
+        Ok(UserFull::from([std, tko, ctb, mna]))
     }
 
     /// Request leaderboard pages for all four modes and collect user ids.
