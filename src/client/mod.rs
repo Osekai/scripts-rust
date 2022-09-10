@@ -79,6 +79,13 @@ impl Client {
         self.send_get_request(url).await
     }
 
+    /// Request all ranking user ids stored by osekai
+    pub async fn get_osekai_ranking(&self) -> Result<Bytes> {
+        let url = format!("{base}down_ranking_ids.php", base = Config::get().url_base);
+
+        self.send_get_request(url).await
+    }
+
     /// Request all medal rarities stored by osekai
     pub async fn get_osekai_rarities(&self) -> Result<Bytes> {
         let base = &Config::get().url_base;

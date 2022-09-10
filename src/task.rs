@@ -19,7 +19,7 @@ impl Task {
 
     pub const DEFAULT: Self =
         Self(Self::MEDALS.0 | Self::BADGES.0 | Self::RANKING.0);
-    pub const FULL: Self = Self(u8::MAX);
+    pub const FULL: Self = Self(Self::DEFAULT.0 | Self::RARITY.0);
 }
 
 impl Task {

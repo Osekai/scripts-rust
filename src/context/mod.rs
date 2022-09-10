@@ -155,6 +155,13 @@ impl Context {
             self.request_leaderboards(&mut user_ids, pages).await;
         }
 
+        // If really ALL users are wanted, get them from osekai
+        if task.contains(Task::FULL) {
+            if let Err(err) = self.request_osekai_ranking(&mut user_ids).await {
+                error!("{:?}", err.wrap_err("Failed to get osekai ranking"));
+            }
+        }
+
         // In case additional user ids were given through CLI, add them here
         user_ids.extend(&args.extras);
 
