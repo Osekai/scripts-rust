@@ -34,7 +34,7 @@ In case the script runs a schedule, there will be an interval between two execut
 - `--quiet` (`-q`): Don't show any logs.
 - `--task` (`-t`): Run only this one task instead of running a schedule in a loop. This can be added multiple times to build a task consisting of multiple flags.
 
-## Example
+## Examples
 
 ```sh
 osekai-script -e 42 --initial-delay 2 --interval 7 --extra 2211396 -p
@@ -44,4 +44,4 @@ After an initial delay of 2 minutes this will run the schedule specified in the 
 ```sh
 osekai-script -i 7 -t medal -q --task "badge | rarity" -e 2
 ```
-This will run only one task so the 7 hours of interval are redundant. The task consists of medals, badges, and medal rarity. The user id 2 is sure the be considered in the task. Not logs will be displayed.
+This will run only one task so the 7 hours of interval are redundant. The task consists of medals, badges, and medal rarity. The user id 2 is certain to be considered in the task. No logs will be displayed.
