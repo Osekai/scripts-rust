@@ -128,7 +128,7 @@ impl<'de> Visitor<'de> for RaritySeed<'_> {
     type Value = ();
 
     fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("a map containing `medalid`, `frequency`, and `count` fields")
+        f.write_str("a map containing `id`, `frequency`, and `count` fields")
     }
 
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
@@ -138,13 +138,13 @@ impl<'de> Visitor<'de> for RaritySeed<'_> {
 
         while let Some(key) = map.next_key()? {
             match key {
-                "medalid" => medal_id = Some(map.next_value()?),
+                "id" => medal_id = Some(map.next_value()?),
                 "frequency" => frequency = Some(map.next_value()?),
                 "count" => count = Some(map.next_value()?),
                 _ => {
                     return Err(SerdeError::unknown_field(
                         key,
-                        &["medalid", "frequency", "count"],
+                        &["id", "frequency", "count"],
                     ))
                 }
             }
