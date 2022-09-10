@@ -24,14 +24,12 @@ impl Context {
     }
 
     /// Request leaderboard pages for all four modes and collect user ids.
-    ///
-    /// If `max_page` is not set, it defauls to 200 i.e. all pages.
     pub async fn request_leaderboards(
         &self,
         user_ids: &mut HashSet<u32, IntHasher>,
-        max_page: Option<u32>,
+        max_page: u32,
     ) {
-        info!("Requesting all leaderboard pages of all modes...");
+        info!("Requesting the first {max_page} leaderboard pages for all modes...");
 
         let modes = [
             GameMode::Osu,
@@ -40,8 +38,8 @@ impl Context {
             GameMode::Mania,
         ];
 
-        let max_page = max_page.map_or(200, |page| page.min(200));
-        user_ids.reserve(20_000);
+        let max_page = max_page.min(200);
+        user_ids.reserve(4 * 40 * max_page as usize);
         let mut eta = Eta::default();
 
         for (mode, i) in modes.into_iter().zip(0..) {
@@ -52,7 +50,7 @@ impl Context {
                     Ok(rankings) => rankings,
                     Err(err) => {
                         let wrap =
-                            format!("failed to retrieve leaderboard page {page} for {mode:?}");
+                            format!("Failed to retrieve leaderboard page {page} for {mode:?}");
                         error!("{:?}", Report::from(err).wrap_err(wrap));
 
                         continue;
@@ -64,9 +62,11 @@ impl Context {
 
                 if page % 50 == 0 {
                     let curr = i * 200 + page;
+                    let max = max_page * 4;
+
                     info!(
-                        "Leaderboard progress: {curr}/{max_page} | Remaining: {}",
-                        eta.estimate((max_page - curr) as usize),
+                        "Leaderboard progress: {curr}/{max} | ETA: {}",
+                        eta.estimate((max - curr) as usize),
                     );
                 }
             }

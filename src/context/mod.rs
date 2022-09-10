@@ -138,8 +138,16 @@ impl Context {
         };
 
         // Retrieve users from the leaderboards if necessary
-        if task.rarity() {
-            self.request_leaderboards(&mut user_ids, None).await;
+        let pages = if task.rarity() {
+            Some(200)
+        } else if task.ranking() {
+            Some(5)
+        } else {
+            None
+        };
+
+        if let Some(pages) = pages {
+            self.request_leaderboards(&mut user_ids, pages).await;
         }
 
         // In case additional user ids were given through CLI, add them here
