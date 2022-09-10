@@ -71,7 +71,7 @@ impl Context {
                 }
             }
 
-            info!("Finished requesting all leaderboard pages for {mode:?}");
+            info!("Finished requesting {max_page} leaderboard pages for {mode:?}");
         }
     }
 

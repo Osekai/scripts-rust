@@ -28,10 +28,12 @@ pub struct Context {
 impl Context {
     pub async fn new() -> Result<Self> {
         let config = Config::get();
-        let client_id = config.tokens.osu_client_id;
-        let client_secret = &config.tokens.osu_client_secret;
 
-        let osu = Osu::new(client_id, client_secret)
+        let osu = Osu::builder()
+            .client_id(config.tokens.osu_client_id)
+            .client_secret(&config.tokens.osu_client_secret)
+            .ratelimit(10)
+            .build()
             .await
             .context("failed to create osu client")?;
 
