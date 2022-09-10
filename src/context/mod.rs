@@ -221,6 +221,8 @@ impl Context {
             }
         }
 
+        info!("Finished requesting {len} users");
+
         if check_badges {
             for (description, badge) in badges.iter_mut() {
                 let slim_badge = stored_badges

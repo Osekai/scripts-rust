@@ -2,7 +2,7 @@ use std::collections::{BinaryHeap, HashSet};
 
 use eyre::{Context as _, Report, Result};
 use rosu_v2::{
-    prelude::{GameMode, OsuError, Rankings},
+    prelude::{GameMode, Rankings},
     OsuResult,
 };
 
@@ -15,19 +15,15 @@ use super::Context;
 
 impl Context {
     /// Request user data of a user for all four modes
-    pub async fn request_osu_user(&self, user_id: u32) -> Result<UserFull, OsuError> {
-        // Make a single non-concurrent request first for the case that the user
-        // returns a 404 and other requests would have been unnecessary
-        let std = self.osu.user(user_id).mode(GameMode::Osu).await?;
-
-        // Return the remaining modes concurrently
-        let (tko, ctb, mna) = tokio::try_join!(
+    pub async fn request_osu_user(&self, user_id: u32) -> OsuResult<UserFull> {
+        tokio::try_join!(
+            self.osu.user(user_id).mode(GameMode::Osu),
             self.osu.user(user_id).mode(GameMode::Taiko),
             self.osu.user(user_id).mode(GameMode::Catch),
             self.osu.user(user_id).mode(GameMode::Mania),
-        )?;
-
-        Ok(UserFull::from([std, tko, ctb, mna]))
+        )
+        .map(|(std, tko, ctb, mna)| [std, tko, ctb, mna])
+        .map(UserFull::from)
     }
 
     /// Request leaderboard pages for all four modes and collect user ids.
@@ -82,9 +78,9 @@ impl Context {
                     eta.estimate((max_page - page) as usize),
                 );
             }
-
-            info!("Finished requesting {max_page} leaderboard pages for all modes");
         }
+
+        info!("Finished requesting {max_page} leaderboard pages for all modes");
     }
 
     /// Request all user ids stored by osekai
