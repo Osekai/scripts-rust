@@ -1,10 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{BinaryHeap, HashSet};
 
 use eyre::{Context as _, Report, Result};
 use rosu_v2::prelude::{GameMode, OsuError};
 
 use crate::{
-    model::UserFull,
+    model::{SlimBadge, UserFull},
     util::{Eta, IntHasher},
 };
 
@@ -88,5 +88,26 @@ impl Context {
 
             format!("failed to deserialize osekai members: {text}")
         })
+    }
+
+    /// Request all badges stored by osekai.
+    ///
+    /// The resulting badges will be sorted by their description.
+    pub async fn request_osekai_badges(&self) -> Result<Vec<SlimBadge>> {
+        let bytes = self
+            .client
+            .get_osekai_badges()
+            .await
+            .context("failed to get osekai badges")?;
+
+        serde_json::from_slice(&bytes)
+            // Better to deserialize into a Vec and sort afterwards?
+            // TODO: benchmark
+            .map(BinaryHeap::into_sorted_vec)
+            .with_context(|| {
+                let text = String::from_utf8_lossy(&bytes);
+
+                format!("failed to deserialize osekai badges: {text}")
+            })
     }
 }

@@ -96,8 +96,9 @@ impl Generate for UserCover {
 
 impl Generate for OffsetDateTime {
     fn generate<R: Rng>(rng: &mut R) -> Self {
-        Self::from_unix_timestamp(GenerateRange::generate_range(rng, 1_000_000..100_000_000))
-            .unwrap()
+        let range = 500_000_000..1_500_000_000;
+
+        Self::from_unix_timestamp(GenerateRange::generate_range(rng, range)).unwrap()
     }
 }
 

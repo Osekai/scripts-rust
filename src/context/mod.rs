@@ -143,7 +143,20 @@ impl Context {
         // In case additional user ids were given through CLI, add them here
         user_ids.extend(&args.extras);
 
-        let check_badges = task.badges();
+        // Request badges stored by osekai so we know their ID and can extend the users
+        let (check_badges, stored_badges) = if task.badges() {
+            match self.request_osekai_badges().await {
+                Ok(badges) => (true, badges),
+                Err(err) => {
+                    error!("{:?}", err.wrap_err("Failed to get osekai badges"));
+
+                    (false, Vec::new())
+                }
+            }
+        } else {
+            (false, Vec::new())
+        };
+
         let len = user_ids.len();
         let mut users = Vec::with_capacity(len);
         let mut badges = Badges::with_capacity(10_000);
@@ -193,23 +206,91 @@ impl Context {
             }
         }
 
+        if check_badges {
+            for (description, badge) in badges.iter_mut() {
+                let slim_badge = stored_badges
+                    .binary_search_by(|probe| probe.description.cmp(description))
+                    .ok()
+                    .and_then(|idx| stored_badges.get(idx));
+
+                if let Some(slim_badge) = slim_badge {
+                    badge.id = Some(slim_badge.id);
+                    badge.users.extend(&slim_badge.users);
+                }
+            }
+        }
+
         (users, badges)
     }
 
     #[cfg(feature = "generate")]
     /// Generate users with random dummy values
-    async fn gather_users_and_badges(&self, _: Task, _: &Args) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, task: Task, _: &Args) -> (Vec<UserFull>, Badges) {
+        use rand::Rng;
+        use rosu_v2::prelude::Badge;
+
+        use crate::util::{Generate, GenerateRange};
+
         debug!("Start generating users...");
 
         let mut rng = rand::thread_rng();
-
-        let users: Vec<UserFull> = (0..5_000)
-            .map(|_| crate::util::Generate::generate(&mut rng))
-            .collect();
+        let mut users = (0..5_000).map(|_| Generate::generate(&mut rng)).collect();
 
         debug!("Done generating");
 
-        (users, Badges::default())
+        let mut badges = Badges::default();
+
+        if !task.badges() {
+            return (users, badges);
+        }
+
+        let stored_badges = match self.request_osekai_badges().await {
+            Ok(stored_badges) => stored_badges,
+            Err(err) => {
+                error!("{:?}", err.wrap_err("Failed to get osekai badges"));
+
+                return (users, badges);
+            }
+        };
+
+        for user in users.iter_mut() {
+            let user_id = user.user_id();
+
+            let badges_count = rng.gen_range(0..20);
+
+            for _ in 0..badges_count {
+                // Generate a new badge
+                if rng.gen_bool(0.0001) {
+                    let name = String::generate_range(&mut rng, 3..12);
+                    let image_url = format!("https://www.google.com/{name}.png");
+
+                    let mut badge = Badge {
+                        awarded_at: Generate::generate(&mut rng),
+                        description: GenerateRange::generate_range(&mut rng, 5..20),
+                        image_url,
+                        url: String::new(),
+                    };
+
+                    badges.insert(user_id, &mut badge);
+                } else {
+                    // Use one of the stored badges
+                    let stored_badge_idx = rng.gen_range(0..stored_badges.len());
+                    let stored_badge = &stored_badges[stored_badge_idx];
+
+                    let mut badge = Badge {
+                        awarded_at: Generate::generate(&mut rng),
+                        description: stored_badge.description.clone(),
+                        image_url: stored_badge.image_url.clone(),
+                        url: String::new(),
+                    };
+
+                    badges.insert(user_id, &mut badge);
+                    badges.get_mut(&stored_badge.description).id = Some(stored_badge.id);
+                }
+            }
+        }
+
+        (users, badges)
     }
 
     async fn handle_rarities_and_ranking(

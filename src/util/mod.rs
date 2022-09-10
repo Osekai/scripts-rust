@@ -9,7 +9,7 @@ mod eta;
 mod hasher;
 
 #[cfg(feature = "generate")]
-pub use self::generate::Generate;
+pub use self::generate::{Generate, GenerateRange};
 
 #[cfg(feature = "generate")]
 mod generate;

@@ -65,6 +65,13 @@ impl Client {
         }
     }
 
+    /// Request all badges stored by osekai
+    pub async fn get_osekai_badges(&self) -> Result<Bytes> {
+        let url = format!("{base}down_badges.php", base = Config::get().url_base);
+
+        self.send_get_request(url).await
+    }
+
     /// Request all user ids stored by osekai
     pub async fn get_osekai_members(&self) -> Result<Bytes> {
         let url = format!("{base}down_members.php", base = Config::get().url_base);
@@ -108,6 +115,7 @@ impl Client {
         self.send_post_request(&url, badges).await
     }
 
+    /// Keep osekai posted on what the current progress is
     pub async fn upload_progress(&self, progress: &Progress) -> Result<Bytes> {
         let url = format!("{base}progression.php", base = Config::get().url_base);
 

@@ -20,6 +20,11 @@ impl UserFull {
         self.inner[0].medals.as_mut()
     }
 
+    #[cfg(feature = "generate")]
+    pub fn user_id(&self) -> u32 {
+        self.inner[0].user_id
+    }
+
     pub fn rarest_medal_id(&self, rarities: &MedalRarities) -> Option<u32> {
         self.medals()?
             .iter()
