@@ -95,20 +95,22 @@ impl Context {
             }
         }
 
-        // Request medals
-        match self.request_medals().await {
-            Ok(medals) => {
-                // Upload medals if required
-                if task.medals() {
-                    match self.client.upload_medals(&medals).await {
-                        Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
-                        Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
+        // If badges are all that was required then we're already done
+        if task != Task::BADGES {
+            match self.request_medals().await {
+                Ok(medals) => {
+                    // Upload medals if required
+                    if task.medals() {
+                        match self.client.upload_medals(&medals).await {
+                            Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
+                            Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
+                        }
                     }
-                }
 
-                self.handle_rarities_and_ranking(task, users, &medals).await;
+                    self.handle_rarities_and_ranking(task, users, &medals).await;
+                }
+                Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
             }
-            Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
         }
 
         // Notify osekai that we're done uploading
