@@ -54,6 +54,10 @@ impl Default for Eta {
 pub struct TimeEstimate(Option<Duration>);
 
 impl TimeEstimate {
+    pub fn new(duration: Duration) -> Self {
+        Self(Some(duration))
+    }
+
     pub fn as_seconds(&self) -> Option<u64> {
         self.0.as_ref().map(Duration::as_secs)
     }

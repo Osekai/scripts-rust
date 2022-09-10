@@ -13,7 +13,7 @@ use crate::{
     config::Config,
     model::{Badges, Progress, RankingUser, ScrapedMedal, UserFull},
     task::Task,
-    util::{Eta, IntHasher},
+    util::{Eta, IntHasher, TimeEstimate},
     Args,
 };
 
@@ -45,10 +45,12 @@ impl Context {
     /// Runs one iteration and then returns
     pub async fn run_once(self, task: Task, args: Args) {
         log_args_delay(Some(task), &args).await;
+        let start = Instant::now();
 
         self.iteration(task, &args).await;
 
-        info!("Finished task {task}");
+        let elapsed = TimeEstimate::new(start.elapsed());
+        info!("Finished task `{task}` in {elapsed}");
     }
 
     /// Runs forever based on the schedule in the .env file
@@ -76,9 +78,10 @@ impl Context {
 
             self.iteration(task, &args).await;
 
-            let end = Instant::now();
-            let next = interval.period() - (end - start);
+            let elapsed = start.elapsed();
+            let next = interval.period() - elapsed;
             let hours = (next.as_secs() as f64) / 3600.0;
+            info!("Finished task `{task}` in {}", TimeEstimate::new(elapsed));
             info!("Next task starts in {hours:.3} hour(s)");
         }
     }
