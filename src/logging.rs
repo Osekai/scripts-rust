@@ -33,9 +33,7 @@ pub fn init(quiet: bool) -> WorkerGuard {
     let stdout_filter = if quiet {
         EnvFilter::default()
     } else {
-        EnvFilter::builder()
-            .with_default_directive(LevelFilter::INFO.into())
-            .from_env_lossy()
+        EnvFilter::default().add_directive(LevelFilter::INFO.into())
     };
 
     let file_filter = EnvFilter::builder()
