@@ -108,8 +108,7 @@ impl Serialize for BorrowedBadge<'_> {
             .image_url
             .rsplit_once('/')
             .and_then(|(_, file)| file.rsplit_once('.'))
-            .map(|(name, _)| name)
-            .map(|name| name.replace(['-', '_'], " "));
+            .map(|(name, _)| name.replace(['-', '_'], " "));
 
         s.serialize_entry("name", &name)?;
 

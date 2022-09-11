@@ -7,7 +7,7 @@ const BACKLOG_LEN: usize = 200;
 
 /// Limited capacity queue of time instances.
 pub struct Eta {
-    queue: Vec<Instant>,
+    queue: Box<[Instant]>,
     /// If the queue is not empty, `end` is the index of the last element.
     /// Otherwise, it has no meaning.
     end: usize,
@@ -45,7 +45,7 @@ impl Default for Eta {
     fn default() -> Self {
         Self {
             end: BACKLOG_LEN - 1,
-            queue: vec![Instant::now(); BACKLOG_LEN],
+            queue: vec![Instant::now(); BACKLOG_LEN].into_boxed_slice(),
             len: 0,
         }
     }

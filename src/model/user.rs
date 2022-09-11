@@ -91,10 +91,8 @@ impl From<[User; 4]> for UserFull {
             + ctb.map_or(0, |stats| stats.replays_watched)
             + mna.map_or(0, |stats| stats.replays_watched);
 
-        let inner = [std.into(), tko.into(), ctb.into(), mna.into()];
-
         Self {
-            inner,
+            inner: [std.into(), tko.into(), ctb.into(), mna.into()],
             avatar_url,
             badges,
             country_code,
