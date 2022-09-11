@@ -19,12 +19,16 @@ pub struct MedalRarityEntry {
 
 #[derive(Default)]
 pub struct MedalRarities {
-    inner: HashMap<u32, MedalRarityEntry, IntHasher>,
+    inner: HashMap<u16, MedalRarityEntry, IntHasher>,
 }
 
 impl MedalRarities {
-    pub fn get(&self, medal_id: &u32) -> Option<&MedalRarityEntry> {
+    pub fn get(&self, medal_id: &u16) -> Option<&MedalRarityEntry> {
         self.inner.get(medal_id)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 
     pub fn len(&self) -> usize {
@@ -32,9 +36,9 @@ impl MedalRarities {
     }
 }
 
-impl FromIterator<(u32, u32, f32)> for MedalRarities {
+impl FromIterator<(u16, u32, f32)> for MedalRarities {
     #[inline]
-    fn from_iter<T: IntoIterator<Item = (u32, u32, f32)>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = (u16, u32, f32)>>(iter: T) -> Self {
         let inner = iter
             .into_iter()
             .map(|(medal_id, count, frequency)| {
@@ -63,12 +67,12 @@ impl Serialize for MedalRarities {
 }
 
 struct BorrowedRarity<'r> {
-    medal_id: u32,
+    medal_id: u16,
     rarity: &'r MedalRarityEntry,
 }
 
 impl<'r> BorrowedRarity<'r> {
-    fn new(medal_id: u32, rarity: &'r MedalRarityEntry) -> Self {
+    fn new(medal_id: u16, rarity: &'r MedalRarityEntry) -> Self {
         Self { medal_id, rarity }
     }
 }
@@ -113,7 +117,7 @@ impl<'de> Visitor<'de> for MedalRaritiesVisitor {
     }
 }
 
-struct RaritySeed<'m>(&'m mut HashMap<u32, MedalRarityEntry, IntHasher>);
+struct RaritySeed<'m>(&'m mut HashMap<u16, MedalRarityEntry, IntHasher>);
 
 impl<'de> DeserializeSeed<'de> for RaritySeed<'_> {
     type Value = ();

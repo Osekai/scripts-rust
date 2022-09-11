@@ -11,7 +11,7 @@ pub struct ScrapedMedal {
     #[serde(rename(serialize = "link"))]
     pub icon_url: Box<str>,
     #[serde(rename(serialize = "medalid"))]
-    pub id: u32,
+    pub id: u16,
     pub name: Box<str>,
     pub grouping: Box<str>,
     pub ordering: u8,

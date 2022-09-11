@@ -11,7 +11,7 @@ use tokio::time::{interval, sleep};
 use crate::{
     client::Client,
     config::Config,
-    model::{Badges, Progress, RankingUser, ScrapedMedal, UserFull},
+    model::{Badges, MedalRarities, Progress, RankingUser, ScrapedMedal, UserFull},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -106,6 +106,34 @@ impl Context {
         if task != Task::BADGES {
             match self.request_medals().await {
                 Ok(medals) => {
+                    // Request osekai medals to see if we received new ones
+                    match self.request_osekai_medals().await {
+                        Ok(old_medals) => {
+                            let new_medals: MedalRarities = medals
+                                .iter()
+                                .filter(|medal| !old_medals.contains(&medal.id))
+                                .map(|medal| (medal.id, 0, 0.0))
+                                .collect();
+
+                            // If there are new medals, upload their rarities
+                            if !new_medals.is_empty() {
+                                match self.client.upload_rarity(&new_medals).await {
+                                    Ok(_) => info!(
+                                        "Successfully uploaded rarities for {} new medals",
+                                        new_medals.len()
+                                    ),
+                                    Err(err) => error!(
+                                        "{:?}",
+                                        err.wrap_err("Failed to upload rarities for new medals")
+                                    ),
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            error!("{:?}", err.wrap_err("Failed to request osekai medals"))
+                        }
+                    };
+
                     // Upload medals if required
                     if task.medals() {
                         match self.client.upload_medals(&medals).await {

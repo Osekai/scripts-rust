@@ -65,6 +65,13 @@ impl Client {
         }
     }
 
+    /// Request all medals stored by osekai
+    pub async fn get_osekai_medals(&self) -> Result<Bytes> {
+        let url = format!("{base}down_medals.php", base = Config::get().url_base);
+
+        self.send_get_request(url).await
+    }
+
     /// Request all badges stored by osekai
     pub async fn get_osekai_badges(&self) -> Result<Bytes> {
         let url = format!("{base}down_badges.php", base = Config::get().url_base);
