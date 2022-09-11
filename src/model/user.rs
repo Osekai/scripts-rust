@@ -36,41 +36,7 @@ pub struct UserFull {
 }
 
 impl UserFull {
-    pub fn rarest_medal_id(&self, rarities: &MedalRarities) -> Option<u32> {
-        self.medals
-            .iter()
-            .map(|medal| medal.medal_id)
-            .flat_map(|medal| Some((medal, rarities.get(&medal)?.count)))
-            .min_by_key(|(_, count)| *count)
-            .map(|(medal, _)| medal)
-    }
-
-    /// Iterate over the pp values for each mode
-    pub fn pp_iter(&self) -> impl Iterator<Item = f32> + '_ {
-        self.inner.iter().map(|stats| stats.pp)
-    }
-
-    /// Sum up the pp values of each mode
-    pub fn total_pp(&self) -> f32 {
-        self.pp_iter().sum()
-    }
-
-    /// Calculate the standard deviation for the four pp values
-    pub fn std_dev_pp(&self) -> f32 {
-        let total = self.total_pp();
-        let mean = total / 4.0;
-        let variance: f32 = self.pp_iter().map(|pp| (pp - mean) * (pp - mean)).sum();
-        let std_dev = (variance / 3.0).sqrt();
-
-        total - 2.0 * std_dev
-    }
-}
-
-impl From<[User; 4]> for UserFull {
-    #[inline]
-    fn from(inner: [User; 4]) -> Self {
-        let [std, tko, ctb, mna] = inner;
-
+    pub fn new(std: User, tko: User, ctb: User, mna: User) -> Self {
         let avatar_url = std.avatar_url.into_boxed_str();
         let badges = std.badges.unwrap_or_default().into_boxed_slice();
         let country_code = std.country_code;
@@ -104,5 +70,34 @@ impl From<[User; 4]> for UserFull {
             user_id,
             username,
         }
+    }
+
+    pub fn rarest_medal_id(&self, rarities: &MedalRarities) -> Option<u32> {
+        self.medals
+            .iter()
+            .map(|medal| medal.medal_id)
+            .flat_map(|medal| Some((medal, rarities.get(&medal)?.count)))
+            .min_by_key(|(_, count)| *count)
+            .map(|(medal, _)| medal)
+    }
+
+    /// Iterate over the pp values for each mode
+    pub fn pp_iter(&self) -> impl Iterator<Item = f32> + '_ {
+        self.inner.iter().map(|stats| stats.pp)
+    }
+
+    /// Sum up the pp values of each mode
+    pub fn total_pp(&self) -> f32 {
+        self.pp_iter().sum()
+    }
+
+    /// Calculate the standard deviation for the four pp values
+    pub fn std_dev_pp(&self) -> f32 {
+        let total = self.total_pp();
+        let mean = total / 4.0;
+        let variance: f32 = self.pp_iter().map(|pp| (pp - mean) * (pp - mean)).sum();
+        let std_dev = (variance / 3.0).sqrt();
+
+        total - 2.0 * std_dev
     }
 }

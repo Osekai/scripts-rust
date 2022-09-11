@@ -5,7 +5,7 @@ use std::{
 
 use eyre::{Context as _, Report, Result};
 use rosu_v2::{
-    prelude::{GameMode, Rankings},
+    prelude::{GameMode, OsuError, Rankings},
     OsuResult,
 };
 use serde::{
@@ -24,14 +24,35 @@ use super::Context;
 impl Context {
     /// Request user data of a user for all four modes
     pub async fn request_osu_user(&self, user_id: u32) -> OsuResult<UserFull> {
-        tokio::try_join!(
+        let (std_res, tko_res, ctb_res, mna_res) = tokio::join!(
             self.osu.user(user_id).mode(GameMode::Osu),
             self.osu.user(user_id).mode(GameMode::Taiko),
             self.osu.user(user_id).mode(GameMode::Catch),
             self.osu.user(user_id).mode(GameMode::Mania),
-        )
-        .map(|(std, tko, ctb, mna)| [std, tko, ctb, mna])
-        .map(UserFull::from)
+        );
+
+        macro_rules! handle_res {
+            ($res:ident: $mode:path) => {
+                match $res {
+                    Ok(user) => user,
+                    // Retry on error "http2 error: connection error received: not a result of an error"
+                    // see https://github.com/hyperium/hyper/issues/2500
+                    Err(OsuError::Request { source })
+                        if source.message().to_string().starts_with("http2 error") =>
+                    {
+                        self.osu.user(user_id).mode($mode).await?
+                    }
+                    Err(err) => return Err(err),
+                }
+            };
+        }
+
+        let std = handle_res!(std_res: GameMode::Osu);
+        let tko = handle_res!(tko_res: GameMode::Taiko);
+        let ctb = handle_res!(ctb_res: GameMode::Catch);
+        let mna = handle_res!(mna_res: GameMode::Mania);
+
+        Ok(UserFull::new(std, tko, ctb, mna))
     }
 
     /// Request leaderboard pages for all four modes and collect user ids.
