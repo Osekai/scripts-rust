@@ -55,7 +55,7 @@ impl Context {
     pub fn calculate_rarities(users: &[UserFull], medals: &[ScrapedMedal]) -> MedalRarities {
         let mut counts = HashMap::with_capacity_and_hasher(200, IntHasher);
 
-        for medal in users.iter().filter_map(UserFull::medals).flatten() {
+        for medal in users.iter().flat_map(|user| user.medals.iter()) {
             *counts.entry(medal.medal_id).or_default() += 1;
         }
 

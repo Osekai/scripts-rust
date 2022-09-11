@@ -205,8 +205,8 @@ impl Context {
             };
 
             // Process badges if required
-            if let Some(user_badges) = user.badges_mut().filter(|_| check_badges) {
-                for badge in user_badges.iter_mut() {
+            if check_badges {
+                for badge in user.badges.iter_mut() {
                     badges.insert(user_id, badge);
                 }
             }
@@ -278,8 +278,6 @@ impl Context {
         };
 
         for user in users.iter_mut() {
-            let user_id = user.user_id();
-
             let badges_count = rng.gen_range(0..20);
 
             for _ in 0..badges_count {
@@ -295,7 +293,7 @@ impl Context {
                         url: String::new(),
                     };
 
-                    badges.insert(user_id, &mut badge);
+                    badges.insert(user.user_id, &mut badge);
                 } else {
                     // Use one of the stored badges
                     let stored_badge_idx = rng.gen_range(0..stored_badges.len());
@@ -308,7 +306,7 @@ impl Context {
                         url: String::new(),
                     };
 
-                    badges.insert(user_id, &mut badge);
+                    badges.insert(user.user_id, &mut badge);
                     badges.get_mut(&stored_badge.description).id = Some(stored_badge.id);
                 }
             }
@@ -335,9 +333,8 @@ impl Context {
                     medals.iter().map(|medal| medal.id).collect();
 
                 for user in users.iter_mut() {
-                    if let Some(medals) = user.medals_mut() {
-                        medals.retain(|medal| medal_ids.contains(&medal.medal_id));
-                    }
+                    user.medals
+                        .retain(|medal| medal_ids.contains(&medal.medal_id));
                 }
             }
 

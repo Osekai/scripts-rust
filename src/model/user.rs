@@ -1,32 +1,43 @@
-use rosu_v2::prelude::{Badge, MedalCompact, User};
+use rosu_v2::prelude::{Badge, CountryCode, MedalCompact, User, UserStatistics, Username};
 
 use super::MedalRarities;
 
+#[derive(Default)]
+pub struct ModeStats {
+    pub pp: f32,
+    pub global_rank: Option<u32>,
+}
+
+impl From<Option<&UserStatistics>> for ModeStats {
+    #[inline]
+    fn from(stats: Option<&UserStatistics>) -> Self {
+        match stats {
+            Some(stats) => Self {
+                pp: stats.pp,
+                global_rank: stats.global_rank,
+            },
+            None => Self::default(),
+        }
+    }
+}
+
 pub struct UserFull {
-    pub(super) inner: [User; 4],
+    pub inner: [ModeStats; 4],
+    pub avatar_url: String,
+    pub badges: Vec<Badge>,
+    pub country_code: CountryCode,
+    pub followers: u32,
+    pub maps_ranked: u16,
+    pub maps_loved: u16,
+    pub medals: Vec<MedalCompact>,
+    pub replays_watched: u32,
+    pub user_id: u32,
+    pub username: Username,
 }
 
 impl UserFull {
-    pub fn badges_mut(&mut self) -> Option<&mut [Badge]> {
-        self.inner[0].badges.as_deref_mut()
-    }
-
-    pub fn medals(&self) -> Option<&[MedalCompact]> {
-        self.inner[0].medals.as_deref()
-    }
-
-    #[cfg(feature = "generate")]
-    pub fn medals_mut(&mut self) -> Option<&mut Vec<MedalCompact>> {
-        self.inner[0].medals.as_mut()
-    }
-
-    #[cfg(feature = "generate")]
-    pub fn user_id(&self) -> u32 {
-        self.inner[0].user_id
-    }
-
     pub fn rarest_medal_id(&self, rarities: &MedalRarities) -> Option<u32> {
-        self.medals()?
+        self.medals
             .iter()
             .map(|medal| medal.medal_id)
             .flat_map(|medal| Some((medal, rarities.get(&medal)?.count)))
@@ -36,10 +47,7 @@ impl UserFull {
 
     /// Iterate over the pp values for each mode
     pub fn pp_iter(&self) -> impl Iterator<Item = f32> + '_ {
-        self.inner
-            .iter()
-            .filter_map(|user| user.statistics.as_ref())
-            .map(|stats| stats.pp)
+        self.inner.iter().map(|stats| stats.pp)
     }
 
     /// Sum up the pp values of each mode
@@ -61,6 +69,42 @@ impl UserFull {
 impl From<[User; 4]> for UserFull {
     #[inline]
     fn from(inner: [User; 4]) -> Self {
-        Self { inner }
+        let [std, tko, ctb, mna] = inner;
+
+        let avatar_url = std.avatar_url;
+        let badges = std.badges.unwrap_or_default();
+        let country_code = std.country_code;
+        let followers = std.follower_count.unwrap_or(0);
+        let maps_ranked = std.ranked_mapset_count.map_or(0, |count| count as u16);
+        let maps_loved = std.loved_mapset_count.map_or(0, |count| count as u16);
+        let medals = std.medals.unwrap_or_default();
+        let user_id = std.user_id;
+        let username = std.username;
+
+        let std = std.statistics.as_ref();
+        let tko = tko.statistics.as_ref();
+        let ctb = ctb.statistics.as_ref();
+        let mna = mna.statistics.as_ref();
+
+        let replays_watched = std.map_or(0, |stats| stats.replays_watched)
+            + tko.map_or(0, |stats| stats.replays_watched)
+            + ctb.map_or(0, |stats| stats.replays_watched)
+            + mna.map_or(0, |stats| stats.replays_watched);
+
+        let inner = [std.into(), tko.into(), ctb.into(), mna.into()];
+
+        Self {
+            inner,
+            avatar_url,
+            badges,
+            country_code,
+            followers,
+            maps_ranked,
+            maps_loved,
+            medals,
+            replays_watched,
+            user_id,
+            username,
+        }
     }
 }

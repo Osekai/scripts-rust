@@ -1,3 +1,4 @@
+use rosu_v2::prelude::{CountryCode, Username};
 use serde::{Serialize, Serializer};
 
 use super::{MedalRarities, UserFull};
@@ -5,29 +6,29 @@ use super::{MedalRarities, UserFull};
 #[derive(Serialize)]
 pub struct RankingUser {
     pub id: u32,
-    pub name: String,
+    pub name: Username,
     pub total_pp: f32,
     pub stdev_pp: f32,
     pub standard_pp: f32,
     pub taiko_pp: f32,
     pub ctb_pp: f32,
     pub mania_pp: f32,
-    pub medal_count: usize,
+    pub medal_count: u16,
     #[serde(
         rename(serialize = "rarest_medal"),
         serialize_with = "serialize_rarest"
     )]
-    pub rarest_medal_id: Option<u32>,
-    pub country_code: String,
+    pub rarest_medal_id: Option<u16>,
+    pub country_code: CountryCode,
     pub standard_global: Option<u32>,
     pub taiko_global: Option<u32>,
     pub ctb_global: Option<u32>,
     pub mania_global: Option<u32>,
-    pub badge_count: usize,
-    pub ranked_maps: usize,
-    pub loved_maps: usize,
-    pub subscribers: usize,
-    pub replays_watched: usize,
+    pub badge_count: u16,
+    pub ranked_maps: u16,
+    pub loved_maps: u16,
+    pub subscribers: u32,
+    pub replays_watched: u32,
     pub avatar_url: String,
 }
 
@@ -35,46 +36,36 @@ impl RankingUser {
     pub fn new(user: UserFull, rarities: &MedalRarities) -> Self {
         let total_pp = user.total_pp();
         let stdev_pp = user.std_dev_pp();
-        let rarest_medal_id = user.rarest_medal_id(rarities);
+        let rarest_medal_id = user.rarest_medal_id(rarities).map(|id| id as u16);
 
         let [std, tko, ctb, mna] = user.inner;
 
-        let std_stats = std.statistics.as_ref();
-        let tko_stats = tko.statistics.as_ref();
-        let ctb_stats = ctb.statistics.as_ref();
-        let mna_stats = mna.statistics.as_ref();
-
-        let replays_watched = std_stats.map_or(0, |stats| stats.replays_watched)
-            + tko_stats.map_or(0, |stats| stats.replays_watched)
-            + ctb_stats.map_or(0, |stats| stats.replays_watched)
-            + mna_stats.map_or(0, |stats| stats.replays_watched);
-
         Self {
-            id: std.user_id,
-            name: std.username.into_string(),
             total_pp,
             stdev_pp,
-            standard_pp: std_stats.map_or(0.0, |stats| stats.pp),
-            taiko_pp: tko_stats.map_or(0.0, |stats| stats.pp),
-            ctb_pp: ctb_stats.map_or(0.0, |stats| stats.pp),
-            mania_pp: mna_stats.map_or(0.0, |stats| stats.pp),
-            medal_count: std.medals.as_ref().map_or(0, Vec::len),
             rarest_medal_id,
-            country_code: std.country_code.into_string(),
-            standard_global: std_stats.and_then(|stats| stats.global_rank),
-            taiko_global: tko_stats.and_then(|stats| stats.global_rank),
-            ctb_global: ctb_stats.and_then(|stats| stats.global_rank),
-            mania_global: mna_stats.and_then(|stats| stats.global_rank),
-            badge_count: std.badges.as_ref().map_or(0, Vec::len),
-            ranked_maps: std.ranked_mapset_count.map_or(0, |count| count as usize),
-            loved_maps: std.loved_mapset_count.map_or(0, |count| count as usize),
-            subscribers: std.follower_count.map_or(0, |count| count as usize),
-            replays_watched: replays_watched as usize,
-            avatar_url: std.avatar_url,
+            id: user.user_id,
+            name: user.username,
+            standard_pp: std.pp,
+            taiko_pp: tko.pp,
+            ctb_pp: ctb.pp,
+            mania_pp: mna.pp,
+            medal_count: user.medals.len() as u16,
+            country_code: user.country_code,
+            standard_global: std.global_rank,
+            taiko_global: tko.global_rank,
+            ctb_global: ctb.global_rank,
+            mania_global: mna.global_rank,
+            badge_count: user.badges.len() as u16,
+            ranked_maps: user.maps_ranked,
+            loved_maps: user.maps_loved,
+            subscribers: user.followers,
+            replays_watched: user.replays_watched,
+            avatar_url: user.avatar_url,
         }
     }
 }
 
-fn serialize_rarest<S: Serializer>(opt: &Option<u32>, s: S) -> Result<S::Ok, S::Error> {
-    s.serialize_u32(opt.unwrap_or(0))
+fn serialize_rarest<S: Serializer>(opt: &Option<u16>, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_u16(opt.unwrap_or(0))
 }
