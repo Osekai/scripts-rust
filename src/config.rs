@@ -15,9 +15,9 @@ pub struct Config {
 }
 
 pub struct Tokens {
-    pub post: String,
+    pub post: Box<str>,
     pub osu_client_id: u64,
-    pub osu_client_secret: String,
+    pub osu_client_secret: Box<str>,
 }
 
 impl Config {
@@ -92,7 +92,7 @@ macro_rules! env_kind {
 }
 
 env_kind! {
-    String: s => { Ok(s) },
+    Box<str>: s => { Ok(s.into_boxed_str()) },
     u64: s => { s.parse().map_err(|_| s) },
     PathBuf: s => { s.parse().map_err(|_| s) },
     Uri: s => { s.parse().map_err(|_| s) },

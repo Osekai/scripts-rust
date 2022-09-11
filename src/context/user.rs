@@ -81,10 +81,8 @@ impl Context {
             eta.tick();
 
             if page % 25 == 0 {
-                info!(
-                    "Leaderboard progress: {page}/{max_page} | ETA: {}",
-                    eta.estimate((max_page - page) as usize),
-                );
+                let estimate = eta.estimate((max_page - page) as usize);
+                info!("Leaderboard progress: {page}/{max_page} | ETA: {estimate}");
             }
         }
 

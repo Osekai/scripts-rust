@@ -19,12 +19,12 @@ pub struct BadgeEntry {
     pub id: Option<u32>,
     pub awarded_at: OffsetDateTime,
     pub users: HashSet<u32, IntHasher>,
-    pub image_url: String,
+    pub image_url: Box<str>,
 }
 
 #[derive(Default)]
 pub struct Badges {
-    inner: HashMap<String, BadgeEntry>,
+    inner: HashMap<Box<str>, BadgeEntry>,
 }
 
 impl Badges {
@@ -43,19 +43,19 @@ impl Badges {
     }
 
     pub fn insert(&mut self, user_id: u32, badge: &mut Badge) {
-        let key = mem::take(&mut badge.description);
+        let key = mem::take(&mut badge.description).into_boxed_str();
 
         let entry = self.inner.entry(key).or_insert_with(|| BadgeEntry {
             awarded_at: badge.awarded_at,
             users: HashSet::with_hasher(IntHasher),
-            image_url: mem::take(&mut badge.image_url),
+            image_url: mem::take(&mut badge.image_url).into_boxed_str(),
             id: None,
         });
 
         entry.users.insert(user_id);
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, String, BadgeEntry> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, Box<str>, BadgeEntry> {
         self.inner.iter_mut()
     }
 
@@ -73,7 +73,7 @@ impl Serialize for Badges {
         let mut s = s.serialize_seq(Some(self.inner.len()))?;
 
         for (key, value) in self.inner.iter() {
-            let entry = BorrowedBadge::new(key, value);
+            let entry = BorrowedBadge::new(&**key, value);
             s.serialize_element(&entry)?;
         }
 
@@ -82,12 +82,12 @@ impl Serialize for Badges {
 }
 
 struct BorrowedBadge<'b> {
-    description: &'b String,
+    description: &'b str,
     badge: &'b BadgeEntry,
 }
 
 impl<'b> BorrowedBadge<'b> {
-    fn new(description: &'b String, badge: &'b BadgeEntry) -> Self {
+    fn new(description: &'b str, badge: &'b BadgeEntry) -> Self {
         Self { description, badge }
     }
 }
@@ -167,10 +167,10 @@ impl Serialize for Users<'_> {
 pub struct SlimBadge {
     #[serde(deserialize_with = "deserialize_id")]
     pub id: u32,
-    pub description: String,
+    pub description: Box<str>,
     #[serde(deserialize_with = "deserialize_users")]
-    pub users: Vec<u32>,
-    pub image_url: String,
+    pub users: Box<[u32]>,
+    pub image_url: Box<str>,
 }
 
 fn deserialize_id<'de, D: Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
@@ -180,11 +180,11 @@ fn deserialize_id<'de, D: Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
         .map_err(|_| SerdeError::invalid_value(Unexpected::Str(s), &"a u32"))
 }
 
-fn deserialize_users<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u32>, D::Error> {
+fn deserialize_users<'de, D: Deserializer<'de>>(d: D) -> Result<Box<[u32]>, D::Error> {
     let s = <&'de str as Deserialize>::deserialize(d)?;
 
     if s.is_empty() {
-        return Ok(Vec::new());
+        return Ok(Box::default());
     }
 
     s[1..s.len() - 1]
@@ -192,6 +192,7 @@ fn deserialize_users<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u32>, D::Err
         .map(str::trim)
         .map(str::parse)
         .collect::<Result<_, _>>()
+        .map(Vec::into_boxed_slice)
         .map_err(|_| {
             SerdeError::invalid_value(Unexpected::Str(s), &"a stringified list of integers")
         })

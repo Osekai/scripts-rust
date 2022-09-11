@@ -1,5 +1,5 @@
 use rosu_v2::prelude::{CountryCode, Username};
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 
 use super::{MedalRarities, UserFull};
 
@@ -14,11 +14,8 @@ pub struct RankingUser {
     pub ctb_pp: f32,
     pub mania_pp: f32,
     pub medal_count: u16,
-    #[serde(
-        rename(serialize = "rarest_medal"),
-        serialize_with = "serialize_rarest"
-    )]
-    pub rarest_medal_id: Option<u16>,
+    #[serde(rename(serialize = "rarest_medal"))]
+    pub rarest_medal_id: u16,
     pub country_code: CountryCode,
     pub standard_global: Option<u32>,
     pub taiko_global: Option<u32>,
@@ -29,14 +26,14 @@ pub struct RankingUser {
     pub loved_maps: u16,
     pub subscribers: u32,
     pub replays_watched: u32,
-    pub avatar_url: String,
+    pub avatar_url: Box<str>,
 }
 
 impl RankingUser {
     pub fn new(user: UserFull, rarities: &MedalRarities) -> Self {
         let total_pp = user.total_pp();
         let stdev_pp = user.std_dev_pp();
-        let rarest_medal_id = user.rarest_medal_id(rarities).map(|id| id as u16);
+        let rarest_medal_id = user.rarest_medal_id(rarities).map_or(0, |id| id as u16);
 
         let [std, tko, ctb, mna] = user.inner;
 
@@ -64,8 +61,4 @@ impl RankingUser {
             avatar_url: user.avatar_url,
         }
     }
-}
-
-fn serialize_rarest<S: Serializer>(opt: &Option<u16>, s: S) -> Result<S::Ok, S::Error> {
-    s.serialize_u16(opt.unwrap_or(0))
 }

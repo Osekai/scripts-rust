@@ -11,7 +11,7 @@ use eyre::{Context as _, ContextCompat as _, Result};
 use scraper::{Html, Selector};
 
 impl Context {
-    pub async fn request_medals(&self) -> Result<Vec<ScrapedMedal>> {
+    pub async fn request_medals(&self) -> Result<Box<[ScrapedMedal]>> {
         let bytes = self
             .client
             .get_user_webpage()

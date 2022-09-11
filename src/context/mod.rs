@@ -31,7 +31,7 @@ impl Context {
 
         let osu = Osu::builder()
             .client_id(config.tokens.osu_client_id)
-            .client_secret(&config.tokens.osu_client_secret)
+            .client_secret(&*config.tokens.osu_client_secret)
             .ratelimit(10)
             .build()
             .await
@@ -241,7 +241,7 @@ impl Context {
 
                 if let Some(slim_badge) = slim_badge {
                     badge.id = Some(slim_badge.id);
-                    badge.users.extend(&slim_badge.users);
+                    badge.users.extend(&*slim_badge.users);
                 }
             }
         }
@@ -303,8 +303,8 @@ impl Context {
 
                     let mut badge = Badge {
                         awarded_at: Generate::generate(&mut rng),
-                        description: stored_badge.description.clone(),
-                        image_url: stored_badge.image_url.clone(),
+                        description: stored_badge.description.to_string(),
+                        image_url: stored_badge.image_url.to_string(),
                         url: String::new(),
                     };
 
@@ -335,8 +335,9 @@ impl Context {
                     medals.iter().map(|medal| medal.id).collect();
 
                 for user in users.iter_mut() {
-                    user.medals
-                        .retain(|medal| medal_ids.contains(&medal.medal_id));
+                    let mut medals = std::mem::take(&mut user.medals).to_vec();
+                    medals.retain(|medal| medal_ids.contains(&medal.medal_id));
+                    user.medals = medals.into_boxed_slice();
                 }
             }
 

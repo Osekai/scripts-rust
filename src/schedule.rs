@@ -11,7 +11,7 @@ use crate::task::Task;
 /// Contains a list of tasks to be executed one after
 /// the other with an interval in between.
 pub struct Schedule {
-    tasks: Vec<Task>,
+    tasks: Box<[Task]>,
 }
 
 impl Schedule {
@@ -29,7 +29,8 @@ impl FromStr for Schedule {
             .split(',')
             .map(str::trim)
             .map(Task::from_str)
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<_, _>>()
+            .map(Vec::into_boxed_slice)?;
 
         Ok(Self { tasks })
     }

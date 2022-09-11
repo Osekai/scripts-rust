@@ -23,13 +23,13 @@ impl From<Option<&UserStatistics>> for ModeStats {
 
 pub struct UserFull {
     pub inner: [ModeStats; 4],
-    pub avatar_url: String,
-    pub badges: Vec<Badge>,
+    pub avatar_url: Box<str>,
+    pub badges: Box<[Badge]>,
     pub country_code: CountryCode,
     pub followers: u32,
     pub maps_ranked: u16,
     pub maps_loved: u16,
-    pub medals: Vec<MedalCompact>,
+    pub medals: Box<[MedalCompact]>,
     pub replays_watched: u32,
     pub user_id: u32,
     pub username: Username,
@@ -71,13 +71,13 @@ impl From<[User; 4]> for UserFull {
     fn from(inner: [User; 4]) -> Self {
         let [std, tko, ctb, mna] = inner;
 
-        let avatar_url = std.avatar_url;
-        let badges = std.badges.unwrap_or_default();
+        let avatar_url = std.avatar_url.into_boxed_str();
+        let badges = std.badges.unwrap_or_default().into_boxed_slice();
         let country_code = std.country_code;
         let followers = std.follower_count.unwrap_or(0);
         let maps_ranked = std.ranked_mapset_count.map_or(0, |count| count as u16);
         let maps_loved = std.loved_mapset_count.map_or(0, |count| count as u16);
-        let medals = std.medals.unwrap_or_default();
+        let medals = std.medals.unwrap_or_default().into_boxed_slice();
         let user_id = std.user_id;
         let username = std.username;
 
