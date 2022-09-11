@@ -100,6 +100,8 @@ impl Context {
             }
         }
 
+        drop(badges);
+
         // If badges are all that was required then we're already done
         if task != Task::BADGES {
             match self.request_medals().await {

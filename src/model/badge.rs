@@ -20,7 +20,6 @@ pub struct BadgeEntry {
     pub awarded_at: OffsetDateTime,
     pub users: HashSet<u32, IntHasher>,
     pub image_url: String,
-    pub name: Option<String>,
 }
 
 #[derive(Default)]
@@ -46,18 +45,10 @@ impl Badges {
     pub fn insert(&mut self, user_id: u32, badge: &mut Badge) {
         let key = mem::take(&mut badge.description);
 
-        let name = badge
-            .image_url
-            .rsplit_once('/')
-            .and_then(|(_, file)| file.rsplit_once('.'))
-            .map(|(name, _)| name)
-            .map(|name| name.replace(['-', '_'], " "));
-
         let entry = self.inner.entry(key).or_insert_with(|| BadgeEntry {
             awarded_at: badge.awarded_at,
             users: HashSet::with_hasher(IntHasher),
             image_url: mem::take(&mut badge.image_url),
-            name,
             id: None,
         });
 
@@ -111,7 +102,16 @@ impl Serialize for BorrowedBadge<'_> {
         s.serialize_entry("description", &self.description)?;
         s.serialize_entry("users", &Users(&self.badge.users))?;
         s.serialize_entry("image_url", &self.badge.image_url)?;
-        s.serialize_entry("name", &self.badge.name)?;
+
+        let name = self
+            .badge
+            .image_url
+            .rsplit_once('/')
+            .and_then(|(_, file)| file.rsplit_once('.'))
+            .map(|(name, _)| name)
+            .map(|name| name.replace(['-', '_'], " "));
+
+        s.serialize_entry("name", &name)?;
 
         s.end()
     }
