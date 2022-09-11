@@ -13,8 +13,8 @@ use serde::{
 use crate::util::IntHasher;
 
 pub struct MedalRarityEntry {
-    pub count: usize,
-    pub frequency: f64,
+    pub count: u32,
+    pub frequency: f32,
 }
 
 #[derive(Default)]
@@ -32,9 +32,9 @@ impl MedalRarities {
     }
 }
 
-impl FromIterator<(u32, usize, f64)> for MedalRarities {
+impl FromIterator<(u32, u32, f32)> for MedalRarities {
     #[inline]
-    fn from_iter<T: IntoIterator<Item = (u32, usize, f64)>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = (u32, u32, f32)>>(iter: T) -> Self {
         let inner = iter
             .into_iter()
             .map(|(medal_id, count, frequency)| {

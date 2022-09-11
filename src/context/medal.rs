@@ -64,11 +64,11 @@ impl Context {
             counts.entry(medal.id).or_insert(0);
         }
 
-        let user_count = users.len() as f64;
+        let user_count = users.len() as f32;
 
         counts
             .into_iter()
-            .map(|(medal_id, count)| (medal_id, count, (100 * count) as f64 / user_count))
+            .map(|(medal_id, count)| (medal_id, count, (100 * count) as f32 / user_count))
             .collect()
     }
 }
