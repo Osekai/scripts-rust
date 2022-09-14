@@ -249,7 +249,7 @@ impl Context {
                 info!("User progress: {i}/{len} | ETA: {remaining}");
 
                 if args.progress {
-                    let progress = Progress::new(i, len, remaining);
+                    let progress = Progress::new(i, len, remaining, task);
 
                     if let Err(err) = self.client.upload_progress(&progress).await {
                         error!("{:?}", err.wrap_err("Failed to upload progress"));
