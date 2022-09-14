@@ -209,12 +209,15 @@ impl Context {
             (false, Vec::new())
         };
 
-        let len = user_ids.len();
-        let mut users = Vec::with_capacity(len);
+        let len = user_ids.len() as u32;
+        let mut users = Vec::with_capacity(len as usize);
         let mut badges = Badges::with_capacity(10_000);
         let mut eta = Eta::default();
 
         info!("Requesting {len} users...");
+
+        const PROGRESS_INTERVAL: u32 = 100;
+        let mut progress = Progress::new(len, task);
 
         // Request osu! user data for all users for all modes.
         // The core loop and very expensive.
@@ -244,12 +247,15 @@ impl Context {
             users.push(user);
             eta.tick();
 
-            if i % 100 == 0 {
+            if i % PROGRESS_INTERVAL == 0 {
                 let remaining = eta.estimate(len - i);
                 info!("User progress: {i}/{len} | ETA: {remaining}");
 
                 if args.progress {
-                    let progress = Progress::new(i, len, remaining, task);
+                    let elapsed = eta.first().elapsed();
+                    let users_per_sec =
+                        (1000 * PROGRESS_INTERVAL) as f32 / elapsed.as_millis() as f32;
+                    progress.update(i, remaining, users_per_sec);
 
                     if let Err(err) = self.client.upload_progress(&progress).await {
                         error!("{:?}", err.wrap_err("Failed to upload progress"));
