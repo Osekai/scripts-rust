@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, time::Duration};
 
 use ::bytes::Bytes;
 use eyre::{Context as _, Result};
@@ -39,7 +39,9 @@ impl Client {
             .enable_http1()
             .build();
 
-        let client = HyperClient::builder().build(connector);
+        let client = HyperClient::builder()
+            .pool_idle_timeout(Duration::from_secs(20)) // https://github.com/hyperium/hyper/issues/2136
+            .build(connector);
 
         Self { client }
     }
