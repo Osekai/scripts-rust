@@ -1,7 +1,7 @@
 use std::fmt::Result as FmtResult;
 
 use time::{format_description::FormatItem, macros::format_description};
-use tracing::{metadata::LevelFilter, Event, Subscriber};
+use tracing::{Event, Subscriber};
 use tracing_appender::{
     non_blocking::{NonBlocking, WorkerGuard},
     rolling,
@@ -33,12 +33,13 @@ pub fn init(quiet: bool) -> WorkerGuard {
     let stdout_filter = if quiet {
         EnvFilter::default()
     } else {
-        EnvFilter::default().add_directive(LevelFilter::INFO.into())
+        "osekai_scripts=info,error".parse().unwrap()
     };
 
-    let file_filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::DEBUG.into())
-        .from_env_lossy();
+    let file_filter = match EnvFilter::try_from_default_env() {
+        Ok(filter) => filter,
+        Err(_) => "osekai_scripts=debug,info".parse().unwrap(),
+    };
 
     tracing_subscriber::registry()
         .with(stdout_layer.with_filter(stdout_filter))
