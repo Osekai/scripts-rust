@@ -252,7 +252,7 @@ impl Context {
                 info!("User progress: {i}/{len} | ETA: {remaining}");
 
                 if args.progress {
-                    let elapsed = eta.first().elapsed();
+                    let elapsed = eta.get(PROGRESS_INTERVAL as usize).elapsed();
                     let users_per_sec =
                         (1000 * PROGRESS_INTERVAL) as f32 / elapsed.as_millis() as f32;
                     progress.update(i, remaining, users_per_sec);

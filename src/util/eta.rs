@@ -8,8 +8,7 @@ const BACKLOG_LEN: usize = 200;
 /// Limited capacity queue of time instances.
 pub struct Eta {
     queue: Box<[Instant]>,
-    /// If the queue is not empty, `end` is the index of the last element.
-    /// Otherwise, it has no meaning.
+    /// Index of the last element.
     end: usize,
     /// Amount of elements in the queue. This is equal to `end + 1`
     /// if the queue is not full, or `BACKLOG_LEN` otherwise.
@@ -27,8 +26,8 @@ impl Eta {
         TimeEstimate(self.estimate_(remaining))
     }
 
-    pub fn first(&self) -> Instant {
-        self.queue.first().copied().unwrap_or_else(Instant::now)
+    pub fn get(&self, idx: usize) -> Instant {
+        self.queue[(self.end + 1 + idx) % BACKLOG_LEN]
     }
 
     fn estimate_(&self, remaining: u32) -> Option<Duration> {
