@@ -71,28 +71,28 @@ impl Client {
     pub async fn get_osekai_medals(&self) -> Result<Bytes> {
         let url = format!("{base}down_medals.php", base = Config::get().url_base);
 
-        self.send_get_request(url).await
+        self.send_get_request_retry(url).await
     }
 
     /// Request all badges stored by osekai
     pub async fn get_osekai_badges(&self) -> Result<Bytes> {
         let url = format!("{base}down_badges.php", base = Config::get().url_base);
 
-        self.send_get_request(url).await
+        self.send_get_request_retry(url).await
     }
 
     /// Request all user ids stored by osekai
     pub async fn get_osekai_members(&self) -> Result<Bytes> {
         let url = format!("{base}down_members.php", base = Config::get().url_base);
 
-        self.send_get_request(url).await
+        self.send_get_request_retry(url).await
     }
 
     /// Request all ranking user ids stored by osekai
     pub async fn get_osekai_ranking(&self) -> Result<Bytes> {
         let url = format!("{base}down_ranking_ids.php", base = Config::get().url_base);
 
-        self.send_get_request(url).await
+        self.send_get_request_retry(url).await
     }
 
     /// Request all medal rarities stored by osekai
@@ -100,53 +100,61 @@ impl Client {
         let base = &Config::get().url_base;
         let url = format!("{base}down_rarity.php");
 
-        self.send_get_request(url).await
+        self.send_get_request_retry(url).await
     }
 
     /// Upload medals to osekai
     pub async fn upload_medals(&self, medals: &[ScrapedMedal]) -> Result<Bytes> {
         let url = format!("{base}up_medals.php", base = Config::get().url_base);
 
-        self.send_post_request(&url, &medals).await
+        self.send_post_request_retry(&url, &medals).await
     }
 
     /// Upload medal rarities to osekai
     pub async fn upload_rarity(&self, rarity: &MedalRarities) -> Result<Bytes> {
         let url = format!("{base}up_medals_rarity.php", base = Config::get().url_base);
 
-        self.send_post_request(&url, rarity).await
+        self.send_post_request_retry(&url, rarity).await
     }
 
     /// Upload user rankings to osekai
     pub async fn upload_ranking(&self, ranking: &[RankingUser]) -> Result<Bytes> {
         let url = format!("{base}up_ranking.php", base = Config::get().url_base);
 
-        self.send_post_request(&url, &ranking).await
+        self.send_post_request_retry(&url, &ranking).await
     }
 
     /// Upload badges to osekai
     pub async fn upload_badges(&self, badges: &Badges) -> Result<Bytes> {
         let url = format!("{base}up_badges.php", base = Config::get().url_base);
 
-        self.send_post_request(&url, badges).await
+        self.send_post_request_retry(&url, badges).await
     }
 
     /// Keep osekai posted on what the current progress is
     pub async fn upload_progress(&self, progress: &Progress) -> Result<Bytes> {
         let url = format!("{base}progression.php", base = Config::get().url_base);
 
-        self.send_post_request(&url, progress).await
+        self.send_post_request_retry(&url, progress).await
     }
 
     /// Notify osekai that the upload iteration is finished
     pub async fn finish_uploading(&self, task: Task) -> Result<Bytes> {
         let url = format!("{base}finish.php", base = Config::get().url_base);
 
-        self.send_post_request(&url, &task).await
+        self.send_post_request_retry(&url, &task).await
     }
 
-    async fn send_get_request(&self, url: impl AsRef<str>) -> Result<Bytes> {
+    async fn send_get_request_retry(&self, url: impl AsRef<str>) -> Result<Bytes> {
         let url = url.as_ref();
+
+        match self.send_get_request(url).await {
+            Ok(bytes) => Ok(bytes),
+            Err(_) => self.send_get_request(url).await,
+        }
+    }
+
+    async fn send_get_request(&self, url: &str) -> Result<Bytes> {
         trace!("Sending GET request to url {url}");
 
         let req = Request::builder()
@@ -165,11 +173,22 @@ impl Client {
         Self::error_for_status(response, url).await
     }
 
-    async fn send_post_request<J>(&self, url: impl AsRef<str>, data: &J) -> Result<Bytes>
+    async fn send_post_request_retry<J>(&self, url: impl AsRef<str>, data: &J) -> Result<Bytes>
     where
         J: Serialize,
     {
         let url = url.as_ref();
+
+        match self.send_post_request(url, data).await {
+            Ok(bytes) => Ok(bytes),
+            Err(_) => self.send_post_request(url, data).await,
+        }
+    }
+
+    async fn send_post_request<J>(&self, url: &str, data: &J) -> Result<Bytes>
+    where
+        J: Serialize,
+    {
         trace!("Sending POST request to url {url}");
 
         let form = Multipart::new()
