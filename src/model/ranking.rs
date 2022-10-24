@@ -1,5 +1,8 @@
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 use rosu_v2::prelude::{CountryCode, Username};
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+use time::OffsetDateTime;
 
 use super::{MedalRarities, UserFull};
 
@@ -16,6 +19,8 @@ pub struct RankingUser {
     pub medal_count: u16,
     #[serde(rename(serialize = "rarest_medal"))]
     pub rarest_medal_id: u16,
+    #[serde(serialize_with = "serialize_datetime")]
+    pub rarest_medal_achieved: OffsetDateTime,
     pub country_code: CountryCode,
     pub standard_global: Option<u32>,
     pub taiko_global: Option<u32>,
@@ -33,7 +38,11 @@ impl RankingUser {
     pub fn new(user: UserFull, rarities: &MedalRarities) -> Self {
         let total_pp = user.total_pp();
         let stdev_pp = user.std_dev_pp();
-        let rarest_medal_id = user.rarest_medal_id(rarities).map_or(0, |id| id as u16);
+
+        let (rarest_medal_id, rarest_medal_achieved) = match user.rarest_medal(rarities) {
+            Some(medal) => (medal.medal_id as u16, medal.achieved_at),
+            None => (0, OffsetDateTime::from_unix_timestamp(0).unwrap()),
+        };
 
         let [std, tko, ctb, mna] = user.inner;
 
@@ -41,6 +50,7 @@ impl RankingUser {
             total_pp,
             stdev_pp,
             rarest_medal_id,
+            rarest_medal_achieved,
             id: user.user_id,
             name: user.username,
             standard_pp: std.pp,
@@ -60,5 +70,30 @@ impl RankingUser {
             replays_watched: user.replays_watched,
             avatar_url: user.avatar_url,
         }
+    }
+}
+
+fn serialize_datetime<S: Serializer>(datetime: &OffsetDateTime, s: S) -> Result<S::Ok, S::Error> {
+    s.collect_str(&DateTime(datetime))
+}
+
+struct DateTime<'a>(&'a OffsetDateTime);
+
+impl Display for DateTime<'_> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        let date = self.0.date();
+        let time = self.0.time();
+
+        write!(
+            f,
+            "{}-{}-{} {}:{}:{}",
+            date.year(),
+            date.month() as u8,
+            date.day(),
+            time.hour(),
+            time.minute(),
+            time.second(),
+        )
     }
 }

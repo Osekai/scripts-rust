@@ -72,11 +72,10 @@ impl UserFull {
         }
     }
 
-    pub fn rarest_medal_id(&self, rarities: &MedalRarities) -> Option<u16> {
+    pub fn rarest_medal<'s>(&'s self, rarities: &MedalRarities) -> Option<&'s MedalCompact> {
         self.medals
             .iter()
-            .map(|medal| medal.medal_id as u16)
-            .flat_map(|medal| Some((medal, rarities.get(&medal)?.count)))
+            .flat_map(|medal| Some((medal, rarities.get(&(medal.medal_id as u16))?.count)))
             .min_by_key(|(_, count)| *count)
             .map(|(medal, _)| medal)
     }
