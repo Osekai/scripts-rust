@@ -73,7 +73,7 @@ impl Serialize for Badges {
         let mut s = s.serialize_seq(Some(self.inner.len()))?;
 
         for (key, value) in self.inner.iter() {
-            let entry = BorrowedBadge::new(&**key, value);
+            let entry = BorrowedBadge::new(key, value);
             s.serialize_element(&entry)?;
         }
 
