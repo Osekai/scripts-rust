@@ -79,7 +79,12 @@ impl Context {
             self.iteration(task, &args).await;
 
             let elapsed = start.elapsed();
-            let next = interval.period() - elapsed;
+
+            let next = interval
+                .period()
+                .checked_sub(elapsed)
+                .unwrap_or(Duration::ZERO);
+
             let hours = (next.as_secs() as f64) / 3600.0;
             info!("Finished task `{task}` in {}", TimeEstimate::new(elapsed));
             info!("Next task starts in {hours:.3} hour(s)");
