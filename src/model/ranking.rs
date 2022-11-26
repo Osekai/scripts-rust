@@ -29,6 +29,7 @@ pub struct RankingUser {
     pub badge_count: u16,
     pub ranked_maps: u16,
     pub loved_maps: u16,
+    pub followers: u32,
     pub subscribers: u32,
     pub replays_watched: u32,
     pub avatar_url: Box<str>,
@@ -66,7 +67,8 @@ impl RankingUser {
             badge_count: user.badges.len() as u16,
             ranked_maps: user.maps_ranked,
             loved_maps: user.maps_loved,
-            subscribers: user.followers,
+            followers: user.followers,
+            subscribers: user.subscribers,
             replays_watched: user.replays_watched,
             avatar_url: user.avatar_url,
         }

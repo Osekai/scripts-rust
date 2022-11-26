@@ -31,6 +31,7 @@ pub struct UserFull {
     pub maps_loved: u16,
     pub medals: Box<[MedalCompact]>,
     pub replays_watched: u32,
+    pub subscribers: u32,
     pub user_id: u32,
     pub username: Username,
 }
@@ -44,6 +45,7 @@ impl UserFull {
         let maps_ranked = std.ranked_mapset_count.map_or(0, |count| count as u16);
         let maps_loved = std.loved_mapset_count.map_or(0, |count| count as u16);
         let medals = std.medals.unwrap_or_default().into_boxed_slice();
+        let subscribers = std.mapping_follower_count.unwrap_or(0);
         let user_id = std.user_id;
         let username = std.username;
 
@@ -67,6 +69,7 @@ impl UserFull {
             maps_loved,
             medals,
             replays_watched,
+            subscribers,
             user_id,
             username,
         }
