@@ -2,6 +2,11 @@ use rosu_v2::prelude::{Badge, CountryCode, MedalCompact, User, UserStatistics, U
 
 use super::MedalRarities;
 
+pub enum OsuUser {
+    Available(UserFull),
+    Restricted { user_id: u32 },
+}
+
 #[derive(Default)]
 pub struct ModeStats {
     pub pp: f32,

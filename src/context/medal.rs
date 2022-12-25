@@ -13,7 +13,7 @@ use serde::{
 use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{
-    model::{MedalRarities, ScrapedMedal, ScrapedUser, UserFull},
+    model::{MedalRarities, OsuUser, ScrapedMedal, ScrapedUser},
     util::IntHasher,
 };
 
@@ -77,10 +77,18 @@ impl Context {
     }
 
     /// Calculate each medal's rarity i.e. how many users obtained it
-    pub fn calculate_rarities(users: &[UserFull], medals: &[ScrapedMedal]) -> MedalRarities {
+    pub fn calculate_rarities(users: &[OsuUser], medals: &[ScrapedMedal]) -> MedalRarities {
         let mut counts = HashMap::with_capacity_and_hasher(200, IntHasher);
 
-        for medal in users.iter().flat_map(|user| user.medals.iter()) {
+        let user_medals = users
+            .iter()
+            .filter_map(|user| match user {
+                OsuUser::Available(user) => Some(user),
+                OsuUser::Restricted { .. } => None,
+            })
+            .flat_map(|user| user.medals.iter());
+
+        for medal in user_medals {
             *counts.entry(medal.medal_id as u16).or_default() += 1;
         }
 

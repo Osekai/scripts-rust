@@ -15,7 +15,7 @@ use serde::{
 use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{
-    model::{SlimBadge, UserFull},
+    model::{OsuUser, SlimBadge, UserFull},
     util::{Eta, IntHasher},
 };
 
@@ -23,7 +23,7 @@ use super::Context;
 
 impl Context {
     /// Request user data of a user for all four modes
-    pub async fn request_osu_user(&self, user_id: u32) -> OsuResult<UserFull> {
+    pub async fn request_osu_user(&self, user_id: u32) -> OsuResult<OsuUser> {
         let (std_res, tko_res, ctb_res, mna_res) = tokio::join!(
             self.osu.user(user_id).mode(GameMode::Osu),
             self.osu.user(user_id).mode(GameMode::Taiko),
@@ -35,6 +35,7 @@ impl Context {
             ($res:ident: $mode:path) => {
                 match $res {
                     Ok(user) => user,
+                    Err(OsuError::NotFound) => return Ok(OsuUser::Restricted { user_id }),
                     // Retry on error "http2 error: connection error received: not a result of an error"
                     // see https://github.com/hyperium/hyper/issues/2500
                     Err(OsuError::Request { source })
@@ -52,7 +53,7 @@ impl Context {
         let ctb = handle_res!(ctb_res: GameMode::Catch);
         let mna = handle_res!(mna_res: GameMode::Mania);
 
-        Ok(UserFull::new(std, tko, ctb, mna))
+        Ok(OsuUser::Available(UserFull::new(std, tko, ctb, mna)))
     }
 
     /// Request leaderboard pages for all four modes and collect user ids.

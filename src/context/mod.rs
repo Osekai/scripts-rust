@@ -4,14 +4,13 @@ use std::{
 };
 
 use eyre::{Context as _, Report, Result};
-use rosu_v2::prelude::OsuError;
 use rosu_v2::Osu;
 use tokio::time::{interval, sleep};
 
 use crate::{
     client::Client,
     config::Config,
-    model::{Badges, MedalRarities, Progress, RankingUser, ScrapedMedal, UserFull},
+    model::{Badges, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -161,8 +160,9 @@ impl Context {
     }
 
     #[cfg(not(feature = "generate"))]
-    async fn gather_users_and_badges(&self, task: Task, args: &Args) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, task: Task, args: &Args) -> (Vec<OsuUser>, Badges) {
         // If medals are the only thing that should be updated, requesting users is not necessary
+
         let mut user_ids = if task != Task::MEDALS {
             // Otherwise request the user ids stored by osekai
             match self.request_osekai_users().await {
@@ -229,11 +229,6 @@ impl Context {
         for (user_id, i) in user_ids.into_iter().zip(1..) {
             let mut user = match self.request_osu_user(user_id).await {
                 Ok(user) => user,
-                Err(OsuError::NotFound) => {
-                    warn!("User {user_id} was not found");
-
-                    continue;
-                }
                 Err(err) => {
                     let wrap = format!("Failed to request user {user_id} from osu!api");
                     error!("{:?}", Report::from(err).wrap_err(wrap));
@@ -244,8 +239,10 @@ impl Context {
 
             // Process badges if required
             if check_badges {
-                for badge in user.badges.iter_mut() {
-                    badges.insert(user_id, badge);
+                if let OsuUser::Available(ref mut user) = user {
+                    for badge in user.badges.iter_mut() {
+                        badges.insert(user_id, badge);
+                    }
                 }
             }
 
@@ -290,7 +287,7 @@ impl Context {
 
     #[cfg(feature = "generate")]
     /// Generate users with random dummy values
-    async fn gather_users_and_badges(&self, task: Task, _: &Args) -> (Vec<UserFull>, Badges) {
+    async fn gather_users_and_badges(&self, task: Task, _: &Args) -> (Vec<OsuUser>, Badges) {
         use rand::Rng;
         use rosu_v2::prelude::Badge;
 
@@ -299,7 +296,11 @@ impl Context {
         debug!("Start generating users...");
 
         let mut rng = rand::thread_rng();
-        let mut users = (0..5_000).map(|_| Generate::generate(&mut rng)).collect();
+
+        let mut users = (0..5_000)
+            .map(|_| Generate::generate(&mut rng))
+            .map(OsuUser::Available)
+            .collect();
 
         debug!("Done generating");
 
@@ -319,6 +320,7 @@ impl Context {
         };
 
         for user in users.iter_mut() {
+            let OsuUser::Available(ref mut user) = user else { unreachable!() };
             let badges_count = rng.gen_range(0..20);
 
             for _ in 0..badges_count {
@@ -359,7 +361,7 @@ impl Context {
     async fn handle_rarities_and_ranking(
         &self,
         task: Task,
-        #[allow(unused_mut)] mut users: Vec<UserFull>,
+        #[allow(unused_mut)] mut users: Vec<OsuUser>,
         medals: &[ScrapedMedal],
     ) {
         let rarities = if users.is_empty() {
@@ -374,9 +376,11 @@ impl Context {
                     medals.iter().map(|medal| medal.id).collect();
 
                 for user in users.iter_mut() {
-                    let mut medals = std::mem::take(&mut user.medals).to_vec();
-                    medals.retain(|medal| medal_ids.contains(&medal.medal_id));
-                    user.medals = medals.into_boxed_slice();
+                    if let Some(ref mut user) = user {
+                        let mut medals = std::mem::take(&mut user.medals).to_vec();
+                        medals.retain(|medal| medal_ids.contains(&medal.medal_id));
+                        user.medals = medals.into_boxed_slice();
+                    }
                 }
             }
 

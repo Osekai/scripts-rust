@@ -4,7 +4,7 @@ pub use self::{
     ranking::RankingUser,
     rarity::{MedalRarities, MedalRarityEntry},
     scrap::{ScrapedMedal, ScrapedUser},
-    user::UserFull,
+    user::{OsuUser, UserFull},
 };
 
 mod badge;
