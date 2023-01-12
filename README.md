@@ -19,7 +19,7 @@ A task consists of the following flags:
 
 When specifying tasks, do so with a `|`-separated list of these flags.
 You can also use these predefined tasks:
-- `default`: `medal | ranking | badge`
+- `default`: `medal | ranking`
 - `full`: `medal | ranking | badge | rarity`
 
 In case the script runs a schedule, there will be an interval between two executing tasks e.g. if the interval is 12 hours and the first task takes 2 hours then the next task will start 10 hours after the first task ended. If a task takes longer than the specified interval then there is no wait time inbetween tasks.
