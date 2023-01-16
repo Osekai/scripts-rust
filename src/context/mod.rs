@@ -10,7 +10,7 @@ use tokio::time::{interval, sleep};
 use crate::{
     client::Client,
     config::Config,
-    model::{Badges, Finish, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
+    model::{Badges, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -94,7 +94,7 @@ impl Context {
     async fn iteration(&self, task: Task, args: &Args) {
         info!("Starting task `{task}`");
 
-        let (users, badges, requested_users) = self.gather_users_and_badges(task, args).await;
+        let (users, badges, progress) = self.gather_users_and_badges(task, args).await;
 
         // Upload badges if required
         if !badges.is_empty() && task.badges() {
@@ -153,9 +153,7 @@ impl Context {
         }
 
         // Notify osekai that we're done uploading
-        let finish = Finish::new(task, requested_users);
-
-        match self.client.finish_uploading(finish).await {
+        match self.client.finish_uploading(progress.into()).await {
             Ok(_) => info!("Successfully finished uploading"),
             Err(err) => error!("{:?}", err.wrap_err("Failed to finish uploading")),
         }
@@ -166,7 +164,7 @@ impl Context {
         &self,
         task: Task,
         args: &Args,
-    ) -> (Vec<OsuUser>, Badges, u32) {
+    ) -> (Vec<OsuUser>, Badges, Progress) {
         // If medals are the only thing that should be updated, requesting users is not necessary
 
         let mut user_ids = if task != Task::MEDALS {
@@ -220,15 +218,22 @@ impl Context {
             (false, Vec::new())
         };
 
-        let len = user_ids.len() as u32;
+        let len = user_ids.len();
         let mut users = Vec::with_capacity(len as usize);
         let mut badges = Badges::with_capacity(10_000);
         let mut eta = Eta::default();
 
         info!("Requesting {len} users...");
 
-        const PROGRESS_INTERVAL: u32 = 100;
         let mut progress = Progress::new(len, task);
+
+        if args.progress {
+            if let Err(err) = self.client.upload_progress(&progress).await {
+                error!("{:?}", err.wrap_err("Failed to upload initial progress"));
+            }
+        }
+
+        let mut remaining_users = len;
 
         // Request osu! user data for all users for all modes.
         // The core loop and very expensive.
@@ -255,15 +260,13 @@ impl Context {
             users.push(user);
             eta.tick();
 
-            if i % PROGRESS_INTERVAL == 0 {
-                let remaining = eta.estimate(len - i);
-                info!("User progress: {i}/{len} | ETA: {remaining}");
+            if i % Progress::INTERVAL == 0 {
+                let remaining_time = eta.estimate(len - i);
+                info!("User progress: {i}/{len} | ETA: {remaining_time}");
 
                 if args.progress {
-                    let elapsed = eta.get(PROGRESS_INTERVAL as usize).elapsed();
-                    let users_per_sec =
-                        (1000 * PROGRESS_INTERVAL) as f32 / elapsed.as_millis() as f32;
-                    progress.update(i, remaining, users_per_sec);
+                    progress.update(i, &eta);
+                    remaining_users = len - i;
 
                     if let Err(err) = self.client.upload_progress(&progress).await {
                         error!("{:?}", err.wrap_err("Failed to upload progress"));
@@ -273,6 +276,14 @@ impl Context {
         }
 
         info!("Finished requesting {len} users");
+
+        if args.progress {
+            progress.finish(remaining_users, &eta);
+
+            if let Err(err) = self.client.upload_progress(&progress).await {
+                error!("{:?}", err.wrap_err("Failed to upload final progress"));
+            }
+        }
 
         if check_badges {
             for (description, badge) in badges.iter_mut() {
@@ -288,12 +299,16 @@ impl Context {
             }
         }
 
-        (users, badges, len)
+        (users, badges, progress)
     }
 
     #[cfg(feature = "generate")]
     /// Generate users with random dummy values
-    async fn gather_users_and_badges(&self, task: Task, _: &Args) -> (Vec<OsuUser>, Badges, usize) {
+    async fn gather_users_and_badges(
+        &self,
+        task: Task,
+        _: &Args,
+    ) -> (Vec<OsuUser>, Badges, Progress) {
         use rand::Rng;
         use rosu_v2::prelude::Badge;
 
@@ -303,7 +318,8 @@ impl Context {
 
         let mut rng = rand::thread_rng();
 
-        const LEN: usize = 5000;
+        const LEN: u32 = 5000;
+        let progress = Progress::new(len, task);
 
         let mut users = (0..LEN)
             .map(|_| Generate::generate(&mut rng))
@@ -323,7 +339,7 @@ impl Context {
             Err(err) => {
                 error!("{:?}", err.wrap_err("Failed to get osekai badges"));
 
-                return (users, badges, LEN);
+                return (users, badges, progress);
             }
         };
 
@@ -363,7 +379,7 @@ impl Context {
             }
         }
 
-        (users, badges, LEN)
+        (users, badges, progress)
     }
 
     async fn handle_rarities_and_ranking(

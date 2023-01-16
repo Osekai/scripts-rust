@@ -60,15 +60,15 @@ impl Context {
     pub async fn request_leaderboards(
         &self,
         user_ids: &mut HashSet<u32, IntHasher>,
-        max_page: u32,
+        max_page: usize,
     ) {
         let max_page = max_page.min(200);
-        user_ids.reserve(4 * 40 * max_page as usize);
+        user_ids.reserve(4 * 40 * max_page);
         let mut eta = Eta::default();
 
         info!("Requesting the first {max_page} leaderboard pages for all modes...");
 
-        for page in 1..=max_page {
+        for page in 1..=max_page as u32 {
             let std_fut = self.osu.performance_rankings(GameMode::Osu).page(page);
             let tko_fut = self.osu.performance_rankings(GameMode::Taiko).page(page);
             let ctb_fut = self.osu.performance_rankings(GameMode::Catch).page(page);
@@ -103,7 +103,7 @@ impl Context {
             eta.tick();
 
             if page % 25 == 0 {
-                let estimate = eta.estimate(max_page - page);
+                let estimate = eta.estimate(max_page - page as usize);
                 info!("Leaderboard progress: {page}/{max_page} | ETA: {estimate}");
             }
         }

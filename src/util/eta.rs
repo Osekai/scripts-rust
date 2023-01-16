@@ -22,7 +22,7 @@ impl Eta {
         self.len += (self.len < BACKLOG_LEN) as usize;
     }
 
-    pub fn estimate(&self, remaining: u32) -> TimeEstimate {
+    pub fn estimate(&self, remaining: usize) -> TimeEstimate {
         TimeEstimate(self.estimate_(remaining))
     }
 
@@ -30,7 +30,7 @@ impl Eta {
         self.queue[(self.end + 1 + idx) % BACKLOG_LEN]
     }
 
-    fn estimate_(&self, remaining: u32) -> Option<Duration> {
+    fn estimate_(&self, remaining: usize) -> Option<Duration> {
         let last = *self.queue.get(self.end).filter(|_| self.len > 20)?;
 
         let first_idx = ((self.len == BACKLOG_LEN) as usize * (self.end + 1)) % BACKLOG_LEN;
