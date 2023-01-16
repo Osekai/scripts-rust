@@ -10,7 +10,7 @@ use tokio::time::{interval, sleep};
 use crate::{
     client::Client,
     config::Config,
-    model::{Badges, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
+    model::{Badges, Finish, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -94,7 +94,7 @@ impl Context {
     async fn iteration(&self, task: Task, args: &Args) {
         info!("Starting task `{task}`");
 
-        let (users, badges) = self.gather_users_and_badges(task, args).await;
+        let (users, badges, requested_users) = self.gather_users_and_badges(task, args).await;
 
         // Upload badges if required
         if !badges.is_empty() && task.badges() {
@@ -153,14 +153,20 @@ impl Context {
         }
 
         // Notify osekai that we're done uploading
-        match self.client.finish_uploading(task).await {
+        let finish = Finish::new(task, requested_users);
+
+        match self.client.finish_uploading(finish).await {
             Ok(_) => info!("Successfully finished uploading"),
             Err(err) => error!("{:?}", err.wrap_err("Failed to finish uploading")),
         }
     }
 
     #[cfg(not(feature = "generate"))]
-    async fn gather_users_and_badges(&self, task: Task, args: &Args) -> (Vec<OsuUser>, Badges) {
+    async fn gather_users_and_badges(
+        &self,
+        task: Task,
+        args: &Args,
+    ) -> (Vec<OsuUser>, Badges, u32) {
         // If medals are the only thing that should be updated, requesting users is not necessary
 
         let mut user_ids = if task != Task::MEDALS {
@@ -282,12 +288,12 @@ impl Context {
             }
         }
 
-        (users, badges)
+        (users, badges, len)
     }
 
     #[cfg(feature = "generate")]
     /// Generate users with random dummy values
-    async fn gather_users_and_badges(&self, task: Task, _: &Args) -> (Vec<OsuUser>, Badges) {
+    async fn gather_users_and_badges(&self, task: Task, _: &Args) -> (Vec<OsuUser>, Badges, usize) {
         use rand::Rng;
         use rosu_v2::prelude::Badge;
 
@@ -297,7 +303,9 @@ impl Context {
 
         let mut rng = rand::thread_rng();
 
-        let mut users = (0..5_000)
+        const LEN: usize = 5000;
+
+        let mut users = (0..LEN)
             .map(|_| Generate::generate(&mut rng))
             .map(OsuUser::Available)
             .collect();
@@ -315,7 +323,7 @@ impl Context {
             Err(err) => {
                 error!("{:?}", err.wrap_err("Failed to get osekai badges"));
 
-                return (users, badges);
+                return (users, badges, LEN);
             }
         };
 
@@ -355,7 +363,7 @@ impl Context {
             }
         }
 
-        (users, badges)
+        (users, badges, LEN)
     }
 
     async fn handle_rarities_and_ranking(
