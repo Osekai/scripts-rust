@@ -1,5 +1,5 @@
 use std::{
-    collections::{BinaryHeap, HashSet},
+    collections::HashSet,
     fmt::{Formatter, Result as FmtResult},
 };
 
@@ -156,9 +156,13 @@ impl Context {
             .context("failed to get osekai badges")?;
 
         serde_json::from_slice(&bytes)
-            // Better to deserialize into a Vec and sort afterwards?
-            // TODO: benchmark
-            .map(BinaryHeap::into_sorted_vec)
+            // Collecting into a Vec followed by sorting appears to be a tiny bit faster than
+            // collecting into a BinaryHeap followed by converting into a Vec
+            .map(|mut badges: Vec<SlimBadge>| {
+                badges.sort_unstable();
+
+                badges
+            })
             .with_context(|| {
                 let text = String::from_utf8_lossy(&bytes);
 
