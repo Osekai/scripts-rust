@@ -9,8 +9,10 @@ pub enum OsuUser {
 
 #[derive(Default)]
 pub struct ModeStats {
-    pub pp: f32,
+    pub acc: f32,
+    pub level: f32,
     pub global_rank: Option<u32>,
+    pub pp: f32,
 }
 
 impl From<Option<&UserStatistics>> for ModeStats {
@@ -18,8 +20,10 @@ impl From<Option<&UserStatistics>> for ModeStats {
     fn from(stats: Option<&UserStatistics>) -> Self {
         match stats {
             Some(stats) => Self {
-                pp: stats.pp,
+                acc: stats.accuracy,
+                level: stats.level.float(),
                 global_rank: stats.global_rank,
+                pp: stats.pp,
             },
             None => Self::default(),
         }
@@ -32,6 +36,7 @@ pub struct UserFull {
     pub badges: Box<[Badge]>,
     pub country_code: CountryCode,
     pub followers: u32,
+    pub kudosu: i32,
     pub maps_ranked: u16,
     pub maps_loved: u16,
     pub medals: Box<[MedalCompact]>,
@@ -47,6 +52,7 @@ impl UserFull {
         let badges = std.badges.unwrap_or_default().into_boxed_slice();
         let country_code = std.country_code;
         let followers = std.follower_count.unwrap_or(0);
+        let kudosu = std.kudosu.total;
         let maps_ranked = std.ranked_mapset_count.map_or(0, |count| count as u16);
         let maps_loved = std.loved_mapset_count.map_or(0, |count| count as u16);
         let medals = std.medals.unwrap_or_default().into_boxed_slice();
@@ -70,6 +76,7 @@ impl UserFull {
             badges,
             country_code,
             followers,
+            kudosu,
             maps_ranked,
             maps_loved,
             medals,
@@ -88,21 +95,29 @@ impl UserFull {
             .map(|(medal, _)| medal)
     }
 
-    /// Iterate over the pp values for each mode
-    pub fn pp_iter(&self) -> impl Iterator<Item = f32> + '_ {
-        self.inner.iter().map(|stats| stats.pp)
+    /// Sum up [`ModeStats`] values of each mode
+    pub fn total<F>(&self, stat: F) -> f32
+    where
+        F: FnMut(&ModeStats) -> f32,
+    {
+        self.inner.iter().map(stat).sum()
     }
 
-    /// Sum up the pp values of each mode
-    pub fn total_pp(&self) -> f32 {
-        self.pp_iter().sum()
-    }
-
-    /// Calculate the standard deviation for the four pp values
-    pub fn std_dev_pp(&self) -> f32 {
-        let total = self.total_pp();
+    /// Calculate the standard deviation for a given value based on [`ModeStats`]
+    pub fn std_dev<F>(&self, stat: F) -> f32
+    where
+        F: Copy + FnMut(&ModeStats) -> f32,
+    {
+        let total = self.total(stat);
         let mean = total / 4.0;
-        let variance: f32 = self.pp_iter().map(|pp| (pp - mean) * (pp - mean)).sum();
+
+        let variance: f32 = self
+            .inner
+            .iter()
+            .map(stat)
+            .map(|value| (value - mean) * (value - mean))
+            .sum();
+
         let std_dev = (variance / 3.0).sqrt();
 
         total - 2.0 * std_dev

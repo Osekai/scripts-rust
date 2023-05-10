@@ -10,6 +10,10 @@ use super::{MedalRarities, OsuUser};
 pub struct RankingUser {
     pub id: u32,
     pub name: Username,
+    pub total_acc: f32,
+    pub stdev_acc: f32,
+    pub total_level: f32,
+    pub stdev_level: f32,
     pub total_pp: f32,
     pub stdev_pp: f32,
     pub standard_pp: f32,
@@ -33,6 +37,7 @@ pub struct RankingUser {
     pub subscribers: u32,
     pub replays_watched: u32,
     pub avatar_url: Box<str>,
+    pub kudosu: i32,
     #[serde(serialize_with = "bool_to_int")]
     pub restricted: bool,
 }
@@ -41,8 +46,14 @@ impl RankingUser {
     pub fn new(user: OsuUser, rarities: &MedalRarities) -> Self {
         match user {
             OsuUser::Available(user) => {
-                let total_pp = user.total_pp();
-                let stdev_pp = user.std_dev_pp();
+                let total_acc = user.total(|stats| stats.acc);
+                let stdev_acc = user.std_dev(|stats| stats.acc);
+
+                let total_level = user.total(|stats| stats.level);
+                let stdev_level = user.std_dev(|stats| stats.level);
+
+                let total_pp = user.total(|stats| stats.pp);
+                let stdev_pp = user.std_dev(|stats| stats.pp);
 
                 let (rarest_medal_id, rarest_medal_achieved) = match user.rarest_medal(rarities) {
                     Some(medal) => (medal.medal_id as u16, medal.achieved_at),
@@ -52,6 +63,10 @@ impl RankingUser {
                 let [std, tko, ctb, mna] = user.inner;
 
                 Self {
+                    total_acc,
+                    stdev_acc,
+                    total_level,
+                    stdev_level,
                     total_pp,
                     stdev_pp,
                     rarest_medal_id,
@@ -75,6 +90,7 @@ impl RankingUser {
                     subscribers: user.subscribers,
                     replays_watched: user.replays_watched,
                     avatar_url: user.avatar_url,
+                    kudosu: user.kudosu,
                     restricted: false,
                 }
             }
@@ -82,6 +98,10 @@ impl RankingUser {
                 id: user_id,
                 restricted: true,
                 name: Default::default(),
+                total_acc: Default::default(),
+                stdev_acc: Default::default(),
+                total_level: Default::default(),
+                stdev_level: Default::default(),
                 total_pp: Default::default(),
                 stdev_pp: Default::default(),
                 standard_pp: Default::default(),
@@ -102,6 +122,7 @@ impl RankingUser {
                 followers: Default::default(),
                 subscribers: Default::default(),
                 replays_watched: Default::default(),
+                kudosu: Default::default(),
                 avatar_url: Default::default(),
             },
         }
