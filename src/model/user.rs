@@ -12,6 +12,7 @@ pub struct ModeStats {
     pub acc: f32,
     pub level: f32,
     pub global_rank: Option<u32>,
+    pub playcount: u32,
     pub pp: f32,
 }
 
@@ -23,6 +24,7 @@ impl From<Option<&UserStatistics>> for ModeStats {
                 acc: stats.accuracy,
                 level: stats.level.float(),
                 global_rank: stats.global_rank,
+                playcount: stats.playcount,
                 pp: stats.pp,
             },
             None => Self::default(),

@@ -50,7 +50,7 @@ impl RankingUser {
     pub fn new(user: OsuUser, rarities: &MedalRarities) -> Self {
         match user {
             OsuUser::Available(user) => {
-                let stdev_acc = user.std_dev(|stats| stats.acc);
+                let mut stdev_acc = user.std_dev(|stats| stats.acc);
                 let stdev_level = user.std_dev(|stats| stats.level);
                 let stdev_pp = user.std_dev(|stats| stats.pp);
 
@@ -61,16 +61,46 @@ impl RankingUser {
 
                 let [std, tko, ctb, mna] = user.inner;
 
+                let mut standard_acc = std.acc;
+                let mut taiko_acc = tko.acc;
+                let mut ctb_acc = ctb.acc;
+                let mut mania_acc = mna.acc;
+
+                let max_rank = std
+                    .global_rank
+                    .unwrap_or(0)
+                    .max(tko.global_rank.unwrap_or(0))
+                    .max(ctb.global_rank.unwrap_or(0))
+                    .max(mna.global_rank.unwrap_or(0));
+
+                let is_inactive = max_rank == 0;
+
+                let max_playcount = std
+                    .playcount
+                    .max(tko.playcount)
+                    .max(ctb.playcount)
+                    .max(mna.playcount);
+
+                const PLAYCOUNT_THRESHOLD: u32 = 500;
+
+                if is_inactive || max_playcount < PLAYCOUNT_THRESHOLD {
+                    stdev_acc = 0.0;
+                    standard_acc = 0.0;
+                    taiko_acc = 0.0;
+                    ctb_acc = 0.0;
+                    mania_acc = 0.0;
+                }
+
                 Self {
                     rarest_medal_id,
                     rarest_medal_achieved,
                     id: user.user_id,
                     name: user.username,
                     stdev_acc,
-                    standard_acc: std.acc,
-                    taiko_acc: tko.acc,
-                    ctb_acc: ctb.acc,
-                    mania_acc: mna.acc,
+                    standard_acc,
+                    taiko_acc,
+                    ctb_acc,
+                    mania_acc,
                     stdev_level,
                     standard_level: std.level,
                     taiko_level: tko.level,
