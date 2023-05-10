@@ -9,11 +9,16 @@ use super::{MedalRarities, OsuUser};
 pub struct RankingUser {
     pub id: u32,
     pub name: Box<str>,
-    pub total_acc: f32,
     pub stdev_acc: f32,
-    pub total_level: f32,
+    pub standard_acc: f32,
+    pub taiko_acc: f32,
+    pub ctb_acc: f32,
+    pub mania_acc: f32,
     pub stdev_level: f32,
-    pub total_pp: f32,
+    pub standard_level: f32,
+    pub taiko_level: f32,
+    pub ctb_level: f32,
+    pub mania_level: f32,
     pub stdev_pp: f32,
     pub standard_pp: f32,
     pub taiko_pp: f32,
@@ -45,13 +50,8 @@ impl RankingUser {
     pub fn new(user: OsuUser, rarities: &MedalRarities) -> Self {
         match user {
             OsuUser::Available(user) => {
-                let total_acc = user.total(|stats| stats.acc);
                 let stdev_acc = user.std_dev(|stats| stats.acc);
-
-                let total_level = user.total(|stats| stats.level);
                 let stdev_level = user.std_dev(|stats| stats.level);
-
-                let total_pp = user.total(|stats| stats.pp);
                 let stdev_pp = user.std_dev(|stats| stats.pp);
 
                 let (rarest_medal_id, rarest_medal_achieved) = match user.rarest_medal(rarities) {
@@ -62,16 +62,21 @@ impl RankingUser {
                 let [std, tko, ctb, mna] = user.inner;
 
                 Self {
-                    total_acc,
-                    stdev_acc,
-                    total_level,
-                    stdev_level,
-                    total_pp,
-                    stdev_pp,
                     rarest_medal_id,
                     rarest_medal_achieved,
                     id: user.user_id,
                     name: user.username,
+                    stdev_acc,
+                    standard_acc: std.acc,
+                    taiko_acc: tko.acc,
+                    ctb_acc: ctb.acc,
+                    mania_acc: mna.acc,
+                    stdev_level,
+                    standard_level: std.level,
+                    taiko_level: tko.level,
+                    ctb_level: ctb.level,
+                    mania_level: mna.level,
+                    stdev_pp,
                     standard_pp: std.pp,
                     taiko_pp: tko.pp,
                     ctb_pp: ctb.pp,
@@ -96,12 +101,18 @@ impl RankingUser {
             OsuUser::Restricted { user_id } => Self {
                 id: user_id,
                 restricted: true,
+                rarest_medal_achieved: OffsetDateTime::from_unix_timestamp(0).unwrap(),
                 name: Default::default(),
-                total_acc: Default::default(),
                 stdev_acc: Default::default(),
-                total_level: Default::default(),
+                standard_acc: Default::default(),
+                taiko_acc: Default::default(),
+                ctb_acc: Default::default(),
+                mania_acc: Default::default(),
                 stdev_level: Default::default(),
-                total_pp: Default::default(),
+                standard_level: Default::default(),
+                taiko_level: Default::default(),
+                ctb_level: Default::default(),
+                mania_level: Default::default(),
                 stdev_pp: Default::default(),
                 standard_pp: Default::default(),
                 taiko_pp: Default::default(),
@@ -109,7 +120,6 @@ impl RankingUser {
                 mania_pp: Default::default(),
                 medal_count: Default::default(),
                 rarest_medal_id: Default::default(),
-                rarest_medal_achieved: OffsetDateTime::from_unix_timestamp(0).unwrap(),
                 country_code: Default::default(),
                 standard_global: Default::default(),
                 taiko_global: Default::default(),
