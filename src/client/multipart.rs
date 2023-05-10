@@ -9,7 +9,7 @@ const BOUNDARY_LEN: usize = 16;
 /// Multipart form implementation to send through POST requests
 pub struct Multipart {
     bytes: Vec<u8>,
-    boundary: String,
+    boundary: Box<str>,
 }
 
 impl Multipart {
@@ -18,7 +18,8 @@ impl Multipart {
             .sample_iter(Alphanumeric)
             .take(BOUNDARY_LEN)
             .map(|c| c as char)
-            .collect();
+            .collect::<String>()
+            .into_boxed_str();
 
         Self {
             bytes: Vec::with_capacity(16_384),
