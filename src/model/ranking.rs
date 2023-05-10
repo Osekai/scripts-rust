@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
-use rosu_v2::prelude::{CountryCode, Username};
 use serde::{Serialize, Serializer};
 use time::OffsetDateTime;
 
@@ -9,7 +8,7 @@ use super::{MedalRarities, OsuUser};
 #[derive(Serialize)]
 pub struct RankingUser {
     pub id: u32,
-    pub name: Username,
+    pub name: Box<str>,
     pub total_acc: f32,
     pub stdev_acc: f32,
     pub total_level: f32,
@@ -25,7 +24,7 @@ pub struct RankingUser {
     pub rarest_medal_id: u16,
     #[serde(serialize_with = "serialize_datetime")]
     pub rarest_medal_achieved: OffsetDateTime,
-    pub country_code: CountryCode,
+    pub country_code: Box<str>,
     pub standard_global: Option<u32>,
     pub taiko_global: Option<u32>,
     pub ctb_global: Option<u32>,

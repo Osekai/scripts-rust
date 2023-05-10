@@ -1,4 +1,4 @@
-use rosu_v2::prelude::{Badge, CountryCode, MedalCompact, User, UserStatistics, Username};
+use rosu_v2::prelude::{Badge, MedalCompact, User, UserStatistics};
 
 use super::MedalRarities;
 
@@ -34,7 +34,7 @@ pub struct UserFull {
     pub inner: [ModeStats; 4],
     pub avatar_url: Box<str>,
     pub badges: Box<[Badge]>,
-    pub country_code: CountryCode,
+    pub country_code: Box<str>,
     pub followers: u32,
     pub kudosu: i32,
     pub maps_ranked: u16,
@@ -43,14 +43,14 @@ pub struct UserFull {
     pub replays_watched: u32,
     pub subscribers: u32,
     pub user_id: u32,
-    pub username: Username,
+    pub username: Box<str>,
 }
 
 impl UserFull {
     pub fn new(std: User, tko: User, ctb: User, mna: User) -> Self {
         let avatar_url = std.avatar_url.into_boxed_str();
         let badges = std.badges.unwrap_or_default().into_boxed_slice();
-        let country_code = std.country_code;
+        let country_code = std.country_code.into_string().into_boxed_str();
         let followers = std.follower_count.unwrap_or(0);
         let kudosu = std.kudosu.total;
         let maps_ranked = std.ranked_mapset_count.map_or(0, |count| count as u16);
@@ -58,7 +58,7 @@ impl UserFull {
         let medals = std.medals.unwrap_or_default().into_boxed_slice();
         let subscribers = std.mapping_follower_count.unwrap_or(0);
         let user_id = std.user_id;
-        let username = std.username;
+        let username = std.username.into_string().into_boxed_str();
 
         let std = std.statistics.as_ref();
         let tko = tko.statistics.as_ref();
