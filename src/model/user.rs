@@ -122,6 +122,6 @@ impl UserFull {
 
         let std_dev = (variance / 3.0).sqrt();
 
-        total - 2.0 * std_dev
+        (total - 2.0 * std_dev).max(0.0)
     }
 }
