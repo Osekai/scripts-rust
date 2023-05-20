@@ -155,7 +155,7 @@ impl Display for Users<'_> {
         let mut iter = self.0.iter();
 
         if let Some(elem) = iter.next() {
-            write!(f, "{elem}")?;
+            Display::fmt(elem, f)?;
 
             for elem in iter {
                 write!(f, ",{elem}")?;

@@ -41,7 +41,7 @@ impl Display for Schedule {
         let mut iter = self.tasks.iter();
 
         if let Some(task) = iter.next() {
-            write!(f, "{task}")?;
+            Display::fmt(task, f)?;
 
             for task in iter {
                 write!(f, ", {task}")?;
