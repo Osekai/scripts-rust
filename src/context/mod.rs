@@ -219,7 +219,7 @@ impl Context {
         };
 
         let len = user_ids.len();
-        let mut users = Vec::with_capacity(len as usize);
+        let mut users = Vec::with_capacity(len);
         let mut badges = Badges::with_capacity(10_000);
         let mut eta = Eta::default();
 
