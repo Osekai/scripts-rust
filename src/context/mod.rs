@@ -286,9 +286,14 @@ impl Context {
         }
 
         if check_badges {
-            for (description, badge) in badges.iter_mut() {
+            for (badge_key, badge) in badges.iter_mut() {
                 let slim_badge = stored_badges
-                    .binary_search_by(|probe| probe.description.cmp(description))
+                    .binary_search_by(|probe| {
+                        probe
+                            .description
+                            .cmp(&badge.description)
+                            .then_with(|| probe.image_url.cmp(&badge_key.image_url))
+                    })
                     .ok()
                     .and_then(|idx| stored_badges.get(idx));
 
