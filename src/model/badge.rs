@@ -15,16 +15,25 @@ use time::OffsetDateTime;
 
 use crate::util::IntHasher;
 
+// Different badges may have the same description so we
+// use the image url as key instead.
+//
+// See github issue #1
+#[derive(Eq, PartialEq, Hash)]
+pub struct BadgeKey {
+    pub image_url: Box<str>,
+}
+
 pub struct BadgeEntry {
+    pub description: Box<str>,
     pub id: Option<u32>,
     pub awarded_at: OffsetDateTime,
     pub users: HashSet<u32, IntHasher>,
-    pub image_url: Box<str>,
 }
 
 #[derive(Default)]
 pub struct Badges {
-    inner: HashMap<Box<str>, BadgeEntry>,
+    inner: HashMap<BadgeKey, BadgeEntry>,
 }
 
 impl Badges {
@@ -43,19 +52,21 @@ impl Badges {
     }
 
     pub fn insert(&mut self, user_id: u32, badge: &mut Badge) {
-        let key = mem::take(&mut badge.description).into_boxed_str();
+        let key = BadgeKey {
+            image_url: mem::take(&mut badge.image_url).into_boxed_str(),
+        };
 
         let entry = self.inner.entry(key).or_insert_with(|| BadgeEntry {
+            description: mem::take(&mut badge.description).into_boxed_str(),
             awarded_at: badge.awarded_at,
             users: HashSet::with_hasher(IntHasher),
-            image_url: mem::take(&mut badge.image_url).into_boxed_str(),
             id: None,
         });
 
         entry.users.insert(user_id);
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, Box<str>, BadgeEntry> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, BadgeKey, BadgeEntry> {
         self.inner.iter_mut()
     }
 
@@ -82,13 +93,13 @@ impl Serialize for Badges {
 }
 
 struct BorrowedBadge<'b> {
-    description: &'b str,
-    badge: &'b BadgeEntry,
+    key: &'b BadgeKey,
+    entry: &'b BadgeEntry,
 }
 
 impl<'b> BorrowedBadge<'b> {
-    fn new(description: &'b str, badge: &'b BadgeEntry) -> Self {
-        Self { description, badge }
+    fn new(key: &'b BadgeKey, entry: &'b BadgeEntry) -> Self {
+        Self { key, entry }
     }
 }
 
@@ -97,14 +108,14 @@ impl Serialize for BorrowedBadge<'_> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut s = s.serialize_map(Some(6))?;
 
-        s.serialize_entry("id", &self.badge.id)?;
-        s.serialize_entry("awarded_at", &Date(self.badge.awarded_at))?;
-        s.serialize_entry("description", &self.description)?;
-        s.serialize_entry("users", &Users(&self.badge.users))?;
-        s.serialize_entry("image_url", &self.badge.image_url)?;
+        s.serialize_entry("id", &self.entry.id)?;
+        s.serialize_entry("awarded_at", &Date(self.entry.awarded_at))?;
+        s.serialize_entry("description", &self.entry.description)?;
+        s.serialize_entry("users", &Users(&self.entry.users))?;
+        s.serialize_entry("image_url", &self.key.image_url)?;
 
         let name = self
-            .badge
+            .key
             .image_url
             .rsplit_once('/')
             .and_then(|(_, file)| file.rsplit_once('.'))
@@ -209,7 +220,9 @@ impl Eq for SlimBadge {}
 impl Ord for SlimBadge {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        self.description.cmp(&other.description)
+        self.description
+            .cmp(&other.description)
+            .then_with(|| self.image_url.cmp(&other.image_url))
     }
 }
 
