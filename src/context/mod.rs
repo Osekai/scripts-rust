@@ -99,7 +99,7 @@ impl Context {
         // Upload badges if required
         if !badges.is_empty() && task.badges() {
             match self.client.upload_badges(&badges).await {
-                Ok(_) => info!("Successfully uploaded {} badges", badges.len()),
+                Ok(res) => info!("Successfully uploaded {} badges{res}", badges.len()),
                 Err(err) => error!("{:?}", err.wrap_err("Failed to upload badges")),
             }
         }
@@ -122,8 +122,8 @@ impl Context {
                             // If there are new medals, upload their rarities
                             if !new_medals.is_empty() {
                                 match self.client.upload_rarity(&new_medals).await {
-                                    Ok(_) => info!(
-                                        "Successfully uploaded rarities for {} new medals",
+                                    Ok(res) => info!(
+                                        "Successfully uploaded rarities for {} new medals{res}",
                                         new_medals.len()
                                     ),
                                     Err(err) => error!(
@@ -141,7 +141,7 @@ impl Context {
                     // Upload medals if required
                     if task.medals() {
                         match self.client.upload_medals(&medals).await {
-                            Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
+                            Ok(res) => info!("Successfully uploaded {} medals{res}", medals.len()),
                             Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
                         }
                     }
@@ -154,7 +154,7 @@ impl Context {
 
         // Notify osekai that we're done uploading
         match self.client.finish_uploading(progress.into()).await {
-            Ok(_) => info!("Successfully finished uploading"),
+            Ok(res) => info!("Successfully finished uploading{res}"),
             Err(err) => error!("{:?}", err.wrap_err("Failed to finish uploading")),
         }
     }
@@ -228,8 +228,9 @@ impl Context {
         let mut progress = Progress::new(len, task);
 
         if args.progress {
-            if let Err(err) = self.client.upload_progress(&progress).await {
-                error!("{:?}", err.wrap_err("Failed to upload initial progress"));
+            match self.client.upload_progress(&progress).await {
+                Ok(res) => info!("Successfully uploaded initial progress{res}"),
+                Err(err) => error!("{:?}", err.wrap_err("Failed to upload initial progress")),
             }
         }
 
@@ -268,8 +269,9 @@ impl Context {
                     progress.update(i, &eta);
                     remaining_users = len - i;
 
-                    if let Err(err) = self.client.upload_progress(&progress).await {
-                        error!("{:?}", err.wrap_err("Failed to upload progress"));
+                    match self.client.upload_progress(&progress).await {
+                        Ok(res) => info!("Successfully uploaded progress{res}"),
+                        Err(err) => error!("{:?}", err.wrap_err("Failed to upload progress")),
                     }
                 }
             }
@@ -280,8 +282,9 @@ impl Context {
         if args.progress {
             progress.finish(remaining_users, &eta);
 
-            if let Err(err) = self.client.upload_progress(&progress).await {
-                error!("{:?}", err.wrap_err("Failed to upload final progress"));
+            match self.client.upload_progress(&progress).await {
+                Ok(res) => info!("Successfully uploaded final progress{res}"),
+                Err(err) => error!("{:?}", err.wrap_err("Failed to upload final progress")),
             }
         }
 
@@ -432,7 +435,10 @@ impl Context {
         // Upload rarities if required
         if task.rarity() {
             match self.client.upload_rarity(&rarities).await {
-                Ok(_) => info!("Successfully uploaded {} medal rarities", rarities.len()),
+                Ok(res) => info!(
+                    "Successfully uploaded {} medal rarities{res}",
+                    rarities.len()
+                ),
                 Err(err) => error!("{:?}", err.wrap_err("Failed to upload medal rarities")),
             }
         }
@@ -445,7 +451,10 @@ impl Context {
                 .collect();
 
             match self.client.upload_ranking(&ranking).await {
-                Ok(_) => info!("Successfully uploaded {} ranking entries", ranking.len()),
+                Ok(res) => info!(
+                    "Successfully uploaded {} ranking entries{res}",
+                    ranking.len()
+                ),
                 Err(err) => error!("{:?}", err.wrap_err("Failed to upload ranking")),
             }
         }
