@@ -1,6 +1,6 @@
 [package]
 name = "osekai-scripts"
-version = "1.0.12"
+version = "1.0.13"
 authors = ["MaxOhn <ohn.m@hotmail.de>"]
 edition = "2021"
 
