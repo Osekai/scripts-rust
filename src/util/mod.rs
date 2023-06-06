@@ -7,9 +7,3 @@ pub use self::{
 mod args;
 mod eta;
 mod hasher;
-
-#[cfg(feature = "generate")]
-pub use self::generate::{Generate, GenerateRange};
-
-#[cfg(feature = "generate")]
-mod generate;

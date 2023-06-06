@@ -159,7 +159,6 @@ impl Context {
         }
     }
 
-    #[cfg(not(feature = "generate"))]
     async fn gather_users_and_badges(
         &self,
         task: Task,
@@ -315,86 +314,6 @@ impl Context {
         (users, badges, progress)
     }
 
-    #[cfg(feature = "generate")]
-    /// Generate users with random dummy values
-    async fn gather_users_and_badges(
-        &self,
-        task: Task,
-        _: &Args,
-    ) -> (Vec<OsuUser>, Badges, Progress) {
-        use rand::Rng;
-        use rosu_v2::prelude::Badge;
-
-        use crate::util::{Generate, GenerateRange};
-
-        debug!("Start generating users...");
-
-        let mut rng = rand::thread_rng();
-
-        const LEN: u32 = 5000;
-        let progress = Progress::new(len, task);
-
-        let mut users = (0..LEN)
-            .map(|_| Generate::generate(&mut rng))
-            .map(OsuUser::Available)
-            .collect();
-
-        debug!("Done generating");
-
-        let mut badges = Badges::default();
-
-        if !task.badges() {
-            return (users, badges);
-        }
-
-        let stored_badges = match self.request_osekai_badges().await {
-            Ok(stored_badges) => stored_badges,
-            Err(err) => {
-                error!("{:?}", err.wrap_err("Failed to get osekai badges"));
-
-                return (users, badges, progress);
-            }
-        };
-
-        for user in users.iter_mut() {
-            let OsuUser::Available(ref mut user) = user else { unreachable!() };
-            let badges_count = rng.gen_range(0..20);
-
-            for _ in 0..badges_count {
-                // Generate a new badge
-                if rng.gen_bool(0.0001) {
-                    let name = String::generate_range(&mut rng, 3..12);
-                    let image_url = format!("https://www.google.com/{name}.png");
-
-                    let mut badge = Badge {
-                        awarded_at: Generate::generate(&mut rng),
-                        description: GenerateRange::generate_range(&mut rng, 5..20),
-                        image_url,
-                        url: String::new(),
-                    };
-
-                    badges.insert(user.user_id, &mut badge);
-                } else {
-                    // Use one of the stored badges
-                    let stored_badge_idx = rng.gen_range(0..stored_badges.len());
-                    let stored_badge = &stored_badges[stored_badge_idx];
-
-                    let mut badge = Badge {
-                        awarded_at: Generate::generate(&mut rng),
-                        description: stored_badge.description.to_string(),
-                        image_url: stored_badge.image_url.to_string(),
-                        url: String::new(),
-                    };
-
-                    badges.insert(user.user_id, &mut badge);
-                    badges.get_mut(&stored_badge.description).id = Some(stored_badge.id);
-                }
-            }
-        }
-
-        (users, badges, progress)
-    }
-
     async fn handle_rarities_and_ranking(
         &self,
         task: Task,
@@ -405,22 +324,6 @@ impl Context {
             return;
         } else if task.rarity() {
             // Leaderboard users were gathered so we can calculate proper rarities
-
-            #[cfg(feature = "generate")]
-            {
-                // Make sure that all medal ids are valid if they were randomly generated
-                let medal_ids: HashSet<_, IntHasher> =
-                    medals.iter().map(|medal| medal.id).collect();
-
-                for user in users.iter_mut() {
-                    if let Some(ref mut user) = user {
-                        let mut medals = std::mem::take(&mut user.medals).to_vec();
-                        medals.retain(|medal| medal_ids.contains(&medal.medal_id));
-                        user.medals = medals.into_boxed_slice();
-                    }
-                }
-            }
-
             Self::calculate_rarities(&users, medals)
         } else if task.ranking() {
             // Only osekai users were retrieved, dont calculate rarities

@@ -69,13 +69,6 @@ impl Badges {
     pub fn iter_mut(&mut self) -> IterMut<'_, BadgeKey, BadgeEntry> {
         self.inner.iter_mut()
     }
-
-    #[cfg(feature = "generate")]
-    pub fn get_mut(&mut self, description: &str) -> &mut BadgeEntry {
-        self.inner
-            .get_mut(description)
-            .expect("missing description in badges")
-    }
 }
 
 impl Serialize for Badges {
