@@ -166,7 +166,6 @@ impl Context {
         args: &Args,
     ) -> (Vec<OsuUser>, Badges, Progress) {
         // If medals are the only thing that should be updated, requesting users is not necessary
-
         let mut user_ids = if task != Task::MEDALS {
             // Otherwise request the user ids stored by osekai
             match self.request_osekai_users().await {
@@ -190,12 +189,12 @@ impl Context {
             None
         };
 
-        if let Some(pages) = pages {
+        if let Some(pages) = pages.filter(|_| !args.debug) {
             self.request_leaderboards(&mut user_ids, pages).await;
         }
 
         // If really ALL users are wanted, get them from osekai
-        if task.contains(Task::FULL) {
+        if task.contains(Task::FULL) && !args.debug {
             if let Err(err) = self.request_osekai_ranking(&mut user_ids).await {
                 error!("{:?}", err.wrap_err("Failed to get osekai ranking"));
             }
@@ -218,12 +217,18 @@ impl Context {
             (false, Vec::new())
         };
 
+        if args.debug {
+            let user_id = user_ids.iter().next().copied().unwrap_or(2211396);
+            user_ids.clear();
+            user_ids.insert(user_id);
+        }
+
         let len = user_ids.len();
         let mut users = Vec::with_capacity(len);
         let mut badges = Badges::with_capacity(10_000);
         let mut eta = Eta::default();
 
-        info!("Requesting {len} users...");
+        info!("Requesting {len} user(s)...");
 
         let mut progress = Progress::new(len, task);
 
@@ -467,6 +472,7 @@ async fn log_args_delay(task: Option<Task>, args: &Args) {
         extras,
         interval,
         progress,
+        debug: debug_, // tracing::info doesn't like variables called `debug`
         ..
     } = args;
 
@@ -482,6 +488,7 @@ async fn log_args_delay(task: Option<Task>, args: &Args) {
 
     info!("  - Send progress to osekai while requesting users: {progress}");
     info!("  - Additional user ids: {extras:?}");
+    info!("  - Debug mode enabled: {debug_}");
     info!("");
 
     if args.delay > 0 {

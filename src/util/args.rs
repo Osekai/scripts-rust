@@ -12,6 +12,7 @@ pub struct Args {
     pub interval: u64,
     pub progress: bool,
     pub quiet: bool,
+    pub debug: bool,
 }
 
 impl Args {
@@ -22,6 +23,7 @@ impl Args {
             initial_delay,
             progress,
             quiet,
+            debug,
             task,
         } = ArgsCli::parse();
 
@@ -36,6 +38,7 @@ impl Args {
             interval,
             progress,
             quiet,
+            debug,
         };
 
         (args, task)
@@ -60,6 +63,9 @@ struct ArgsCli {
     #[clap(short, long, action)]
     /// Set this if no logs should be displayed
     quiet: bool,
+    #[clap(long, action)]
+    /// Set this to process only one user
+    debug: bool,
     #[clap(short, long)]
     /// Specific task to be run only once (repeatable)
     task: Vec<Task>,

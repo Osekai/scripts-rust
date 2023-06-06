@@ -32,6 +32,7 @@ In case the script runs a schedule, there will be an interval between two execut
 - `--initial-delay`: Specify the time in minutes that should be waited before starting the first task. Defaults to 1 minute when looping or 0 minutes when running one task.
 - `--progress` (`-p`): While requesting user data, send progress info to osekai.
 - `--quiet` (`-q`): Don't show any logs.
+- `--debug`: Process only one user randomly selected from all available ids.
 - `--task` (`-t`): Run only this one task instead of running a schedule in a loop. This can be added multiple times to build a task consisting of multiple flags.
 
 ## Examples
