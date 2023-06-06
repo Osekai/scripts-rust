@@ -7,8 +7,10 @@ extern crate eyre;
 extern crate tracing;
 
 use eyre::{Context as _, Report, Result};
+use self_update::Status;
 use task::Task;
 use tokio::{runtime::Builder as RuntimeBuilder, signal};
+use util::ArgsResult;
 
 use crate::util::Args;
 
@@ -24,11 +26,6 @@ mod task;
 mod util;
 
 fn main() {
-    let runtime = RuntimeBuilder::new_current_thread()
-        .enable_all()
-        .build()
-        .expect("failed to build runtime");
-
     if dotenv::dotenv().is_err() {
         panic!(
             "Failed to parse .env file. \
@@ -36,14 +33,34 @@ fn main() {
         );
     }
 
-    if let Err(err) = runtime.block_on(async_main()) {
+    // Needs to happen outside of a runtime because
+    // self-updating will use its own runtime
+    let (args, task) = match Args::parse() {
+        ArgsResult::Args(args, task) => (args, task),
+        ArgsResult::Update(res) => {
+            match res {
+                Ok(Status::Updated(version)) => println!("Updated to version {version}!"),
+                Ok(Status::UpToDate(_)) => println!("Already up-to-date!"),
+                Err(err) => eprintln!("{err:?}"),
+            }
+
+            return;
+        }
+    };
+
+    let _log_worker_guard = logging::init(args.quiet);
+
+    let runtime = RuntimeBuilder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("failed to build runtime");
+
+    if let Err(err) = runtime.block_on(async_main(args, task)) {
         error!("{:?}", err.wrap_err("Critical error in main"));
     }
 }
 
-async fn async_main() -> Result<()> {
-    let (mut args, task) = Args::parse();
-    let _log_worker_guard = logging::init(args.quiet);
+async fn async_main(mut args: Args, task: Option<Task>) -> Result<()> {
     config::init(&mut args).context("failed to initialize config")?;
 
     let ctx = Context::new().await.context("failed to create context")?;

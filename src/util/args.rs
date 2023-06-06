@@ -1,6 +1,8 @@
 use std::{collections::HashSet, ops::BitOr};
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
+use eyre::{Result, WrapErr};
+use self_update::{backends::github::Update, Status};
 
 use crate::task::Task;
 
@@ -15,8 +17,13 @@ pub struct Args {
     pub debug: bool,
 }
 
+pub enum ArgsResult {
+    Args(Args, Option<Task>),
+    Update(Result<Status>),
+}
+
 impl Args {
-    pub fn parse() -> (Self, Option<Task>) {
+    pub fn parse() -> ArgsResult {
         let ArgsCli {
             extra,
             interval,
@@ -25,7 +32,12 @@ impl Args {
             quiet,
             debug,
             task,
+            command,
         } = ArgsCli::parse();
+
+        if let Some(ArgCommand::Update) = command {
+            return ArgsResult::Update(update());
+        }
 
         let task = task.into_iter().reduce(Task::bitor);
 
@@ -41,34 +53,64 @@ impl Args {
             debug,
         };
 
-        (args, task)
+        ArgsResult::Args(args, task)
     }
 }
 
 #[derive(Parser)]
-#[clap(author, about = DESCRIPTION)]
+#[command(author, about = DESCRIPTION)]
 struct ArgsCli {
-    #[clap(short, long, value_name = "USER_ID")]
+    #[arg(short, long, value_name = "USER_ID")]
     /// Additional user id to check (repeatable)
     extra: Vec<u32>,
-    #[clap(short, long, default_value_t = 12, value_name = "HOURS")]
+    #[arg(short, long, default_value_t = 12, value_name = "HOURS")]
     /// Time inbetween two tasks
     interval: u64,
-    #[clap(long, value_name = "MINUTES")]
+    #[arg(long, value_name = "MINUTES")]
     /// Time until the first task is started
     initial_delay: Option<u64>,
-    #[clap(short, long, action)]
+    #[arg(short, long, action)]
     /// Set this if progression should be sent to osekai
     progress: bool,
-    #[clap(short, long, action)]
+    #[arg(short, long, action)]
     /// Set this if no logs should be displayed
     quiet: bool,
-    #[clap(long, action)]
+    #[arg(long, action)]
     /// Set this to process only one user
     debug: bool,
-    #[clap(short, long)]
+    #[arg(short, long)]
     /// Specific task to be run only once (repeatable)
     task: Vec<Task>,
+    #[command(subcommand)]
+    command: Option<ArgCommand>,
+}
+
+#[derive(Subcommand)]
+enum ArgCommand {
+    /// Just check for an update and install it
+    Update,
+}
+
+fn update() -> Result<Status> {
+    #[cfg(target_os = "windows")]
+    let target = "x86_64-pc-windows-gnu";
+
+    #[cfg(target_os = "linux")]
+    let target = "x86_64-unknown-linux-musl";
+
+    Update::configure()
+        .repo_owner("Osekai")
+        .repo_name("scripts-rust")
+        .bin_name("osekai-scripts")
+        .show_download_progress(true)
+        .show_output(true)
+        .current_version(env!("CARGO_PKG_VERSION"))
+        .no_confirm(true)
+        .target(target)
+        .build()
+        .wrap_err("Failed to build update")?
+        .update()
+        .wrap_err("Failed to apply update")
 }
 
 static DESCRIPTION: &str = r#"

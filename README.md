@@ -35,6 +35,8 @@ In case the script runs a schedule, there will be an interval between two execut
 - `--debug`: Process only one user randomly selected from all available ids.
 - `--task` (`-t`): Run only this one task instead of running a schedule in a loop. This can be added multiple times to build a task consisting of multiple flags.
 
+If the subcommand `update` is specified, the script won't run but just check for an update and install it.
+
 ## Examples
 
 ```sh
@@ -46,3 +48,8 @@ After an initial delay of 2 minutes this will run the schedule specified in the 
 osekai-script -i 7 -t medal -q --task "badge | rarity" -e 2
 ```
 This will run only one task so the 7 hours of interval are redundant. The task consists of medals, badges, and medal rarity. The user id 2 is certain to be considered in the task. No logs will be displayed.
+
+```sh
+osekai-script update
+```
+Check if an update is available. If so, install it and exit. Otherwise, exit immediately.

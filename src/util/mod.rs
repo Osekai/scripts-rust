@@ -1,5 +1,5 @@
 pub use self::{
-    args::Args,
+    args::{Args, ArgsResult},
     eta::{Eta, TimeEstimate},
     hasher::{IntHash, IntHasher},
 };
