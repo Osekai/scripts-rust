@@ -900,7 +900,7 @@ dependencies = [
 
 [[package]]
 name = "osekai-scripts"
-version = "1.0.14"
+version = "1.0.15"
 dependencies = [
  "bytes",
  "clap",
