@@ -15,7 +15,7 @@ hyper-rustls = { version = "0.24", default-features = false, features = ["http1"
 once_cell = { version = "1.0" }
 rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
 rosu-v2 = { git = "https://github.com/MaxOhn/rosu-v2", branch = "next", default-features = false }
-scraper = { version = "0.13", default-features = false }
+scraper = { version = "0.16", default-features = false }
 self_update = { version = "0.37", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
