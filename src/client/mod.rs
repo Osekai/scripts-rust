@@ -192,11 +192,15 @@ impl Client {
         }
     }
 
+    #[cfg_attr(debug_assertions, allow(unused))]
     async fn send_post_request<J>(&self, url: &str, data: &J) -> Result<Bytes>
     where
         J: Serialize,
     {
         trace!("Sending POST request to url {url}");
+
+        #[cfg(debug_assertions)]
+        return Ok(Bytes::new());
 
         let form = Multipart::new()
             .push_text("key", &Config::get().tokens.post)
