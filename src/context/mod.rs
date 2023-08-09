@@ -10,6 +10,7 @@ use tokio::time::{interval, sleep};
 use crate::{
     client::Client,
     config::Config,
+    database::Database,
     model::{Badges, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
@@ -22,6 +23,7 @@ mod user;
 pub struct Context {
     client: Client,
     osu: Osu,
+    mysql: Database,
 }
 
 impl Context {
@@ -38,7 +40,9 @@ impl Context {
 
         let client = Client::new();
 
-        Ok(Self { client, osu })
+        let mysql = Database::new(&config.database_url).await?;
+
+        Ok(Self { client, osu, mysql })
     }
 
     /// Runs one iteration and then returns
@@ -98,9 +102,9 @@ impl Context {
 
         // Upload badges if required
         if !badges.is_empty() && task.badges() {
-            match self.client.upload_badges(&badges).await {
-                Ok(res) => info!("Successfully uploaded {} badges{res}", badges.len()),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload badges")),
+            match self.mysql.store_badges(&badges).await {
+                Ok(_) => info!("Successfully uploaded {} badges", badges.len()),
+                Err(err) => error!(?err, "Failed to upload badges"),
             }
         }
 

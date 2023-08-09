@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use crate::{
     config::Config,
-    model::{Badges, Finish, MedalRarities, Progress, RankingUser, ScrapedMedal},
+    model::{Finish, Progress},
 };
 
 use self::{bytes::BodyBytes, multipart::Multipart};
@@ -104,37 +104,29 @@ impl Client {
         self.send_get_request_retry(url).await
     }
 
-    /// Upload medals to osekai
-    pub async fn upload_medals(&self, medals: &[ScrapedMedal]) -> Result<OsekaiResponse> {
-        let url = format!("{base}up_medals.php", base = Config::get().url_base);
-        let bytes = self.send_post_request_retry(&url, &medals).await?;
+    // /// Upload medals to osekai
+    // pub async fn upload_medals(&self, medals: &[ScrapedMedal]) -> Result<OsekaiResponse> {
+    //     let url = format!("{base}up_medals.php", base = Config::get().url_base);
+    //     let bytes = self.send_post_request_retry(&url, &medals).await?;
 
-        OsekaiResponse::new(bytes)
-    }
+    //     OsekaiResponse::new(bytes)
+    // }
 
-    /// Upload medal rarities to osekai
-    pub async fn upload_rarity(&self, rarity: &MedalRarities) -> Result<OsekaiResponse> {
-        let url = format!("{base}up_medals_rarity.php", base = Config::get().url_base);
-        let bytes = self.send_post_request_retry(&url, rarity).await?;
+    // /// Upload medal rarities to osekai
+    // pub async fn upload_rarity(&self, rarity: &MedalRarities) -> Result<OsekaiResponse> {
+    //     let url = format!("{base}up_medals_rarity.php", base = Config::get().url_base);
+    //     let bytes = self.send_post_request_retry(&url, rarity).await?;
 
-        OsekaiResponse::new(bytes)
-    }
+    //     OsekaiResponse::new(bytes)
+    // }
 
-    /// Upload user rankings to osekai
-    pub async fn upload_ranking(&self, ranking: &[RankingUser]) -> Result<OsekaiResponse> {
-        let url = format!("{base}up_ranking.php", base = Config::get().url_base);
-        let bytes = self.send_post_request_retry(&url, &ranking).await?;
+    // /// Upload user rankings to osekai
+    // pub async fn upload_ranking(&self, ranking: &[RankingUser]) -> Result<OsekaiResponse> {
+    //     let url = format!("{base}up_ranking.php", base = Config::get().url_base);
+    //     let bytes = self.send_post_request_retry(&url, &ranking).await?;
 
-        OsekaiResponse::new(bytes)
-    }
-
-    /// Upload badges to osekai
-    pub async fn upload_badges(&self, badges: &Badges) -> Result<OsekaiResponse> {
-        let url = format!("{base}up_badges.php", base = Config::get().url_base);
-        let bytes = self.send_post_request_retry(&url, badges).await?;
-
-        OsekaiResponse::new(bytes)
-    }
+    //     OsekaiResponse::new(bytes)
+    // }
 
     /// Keep osekai posted on what the current progress is
     pub async fn upload_progress(&self, progress: &Progress) -> Result<OsekaiResponse> {

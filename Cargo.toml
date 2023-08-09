@@ -19,6 +19,7 @@ scraper = { version = "0.13", default-features = false }
 self_update = { version = "0.37", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+sqlx = { version = "0.7", default-features = false, features = ["macros", "mysql", "runtime-tokio-rustls", "time"] }
 time = { version = "0.3", features = ["macros", "parsing"] }
 tokio = { version = "1.20", default-features = false, features = ["macros", "signal"] }
 tracing = { version = "0.1" }

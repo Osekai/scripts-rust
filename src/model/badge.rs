@@ -1,6 +1,9 @@
 use std::{
     cmp::Ordering,
-    collections::{hash_map::IterMut, HashMap, HashSet},
+    collections::{
+        hash_map::{Iter, IterMut},
+        HashMap, HashSet,
+    },
     fmt::{Display, Formatter, Result as FmtResult},
     mem,
 };
@@ -8,8 +11,7 @@ use std::{
 use rosu_v2::prelude::Badge;
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected},
-    ser::{SerializeMap, SerializeSeq},
-    Deserialize, Serialize, Serializer,
+    Deserialize,
 };
 use time::OffsetDateTime;
 
@@ -28,7 +30,7 @@ pub struct BadgeEntry {
     pub description: Box<str>,
     pub id: Option<u32>,
     pub awarded_at: OffsetDateTime,
-    pub users: HashSet<u32, IntHasher>,
+    pub users: BadgeOwners,
 }
 
 #[derive(Default)]
@@ -59,11 +61,15 @@ impl Badges {
         let entry = self.inner.entry(key).or_insert_with(|| BadgeEntry {
             description: mem::take(&mut badge.description).into_boxed_str(),
             awarded_at: badge.awarded_at,
-            users: HashSet::with_hasher(IntHasher),
+            users: BadgeOwners::default(),
             id: None,
         });
 
         entry.users.insert(user_id);
+    }
+
+    pub fn iter(&self) -> Iter<'_, BadgeKey, BadgeEntry> {
+        self.inner.iter()
     }
 
     pub fn iter_mut(&mut self) -> IterMut<'_, BadgeKey, BadgeEntry> {
@@ -71,76 +77,21 @@ impl Badges {
     }
 }
 
-impl Serialize for Badges {
-    #[inline]
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        let mut s = s.serialize_seq(Some(self.inner.len()))?;
+pub struct BadgeOwners(HashSet<u32, IntHasher>);
 
-        for (key, value) in self.inner.iter() {
-            let entry = BorrowedBadge::new(key, value);
-            s.serialize_element(&entry)?;
-        }
-
-        s.end()
+impl BadgeOwners {
+    fn insert(&mut self, user_id: u32) {
+        self.0.insert(user_id);
     }
 }
 
-struct BorrowedBadge<'b> {
-    key: &'b BadgeKey,
-    entry: &'b BadgeEntry,
-}
-
-impl<'b> BorrowedBadge<'b> {
-    fn new(key: &'b BadgeKey, entry: &'b BadgeEntry) -> Self {
-        Self { key, entry }
+impl Default for BadgeOwners {
+    fn default() -> Self {
+        Self(HashSet::with_hasher(IntHasher))
     }
 }
 
-impl Serialize for BorrowedBadge<'_> {
-    #[inline]
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        let mut s = s.serialize_map(Some(6))?;
-
-        s.serialize_entry("id", &self.entry.id)?;
-        s.serialize_entry("awarded_at", &Date(self.entry.awarded_at))?;
-        s.serialize_entry("description", &self.entry.description)?;
-        s.serialize_entry("users", &Users(&self.entry.users))?;
-        s.serialize_entry("image_url", &self.key.image_url)?;
-
-        let name = self
-            .key
-            .image_url
-            .rsplit_once('/')
-            .and_then(|(_, file)| file.rsplit_once('.'))
-            .map(|(name, _)| name.replace(['-', '_'], " "));
-
-        s.serialize_entry("name", &name)?;
-
-        s.end()
-    }
-}
-
-struct Date(OffsetDateTime);
-
-impl Display for Date {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let date = self.0.date();
-
-        write!(f, "{}-{}-{}", date.year(), date.month() as u8, date.day())
-    }
-}
-
-impl Serialize for Date {
-    #[inline]
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        s.collect_str(self)
-    }
-}
-
-struct Users<'u>(&'u HashSet<u32, IntHasher>);
-
-impl Display for Users<'_> {
+impl Display for BadgeOwners {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.write_str("[")?;
@@ -156,13 +107,6 @@ impl Display for Users<'_> {
         }
 
         f.write_str("]")
-    }
-}
-
-impl Serialize for Users<'_> {
-    #[inline]
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        s.collect_str(self)
     }
 }
 
