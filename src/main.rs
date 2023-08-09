@@ -19,6 +19,7 @@ use self::context::Context;
 mod client;
 mod config;
 mod context;
+mod database;
 mod logging;
 mod model;
 mod schedule;

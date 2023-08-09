@@ -10,6 +10,7 @@ use tokio::time::{interval, sleep};
 use crate::{
     client::Client,
     config::Config,
+    database::Database,
     model::{Badges, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
@@ -22,6 +23,7 @@ mod user;
 pub struct Context {
     client: Client,
     osu: Osu,
+    mysql: Database,
 }
 
 impl Context {
@@ -38,7 +40,9 @@ impl Context {
 
         let client = Client::new();
 
-        Ok(Self { client, osu })
+        let mysql = Database::new(&config.database_url).await?;
+
+        Ok(Self { client, osu, mysql })
     }
 
     /// Runs one iteration and then returns
@@ -96,11 +100,11 @@ impl Context {
 
         let (users, badges, progress) = self.gather_users_and_badges(task, args).await;
 
-        // Upload badges if required
+        // Store badges if required
         if !badges.is_empty() && task.badges() {
-            match self.client.upload_badges(&badges).await {
-                Ok(res) => info!("Successfully uploaded {} badges{res}", badges.len()),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload badges")),
+            match self.mysql.store_badges(&badges).await {
+                Ok(_) => info!("Successfully stored {} badges", badges.len()),
+                Err(err) => error!(?err, "Failed to store badges"),
             }
         }
 
@@ -119,17 +123,16 @@ impl Context {
                                 .map(|medal| (medal.id, 0, 0.0))
                                 .collect();
 
-                            // If there are new medals, upload their rarities
+                            // If there are new medals, store their rarities
                             if !new_medals.is_empty() {
-                                match self.client.upload_rarity(&new_medals).await {
-                                    Ok(res) => info!(
-                                        "Successfully uploaded rarities for {} new medals{res}",
+                                match self.mysql.store_rarities(&new_medals).await {
+                                    Ok(_) => info!(
+                                        "Successfully stored rarities for {} new medals",
                                         new_medals.len()
                                     ),
-                                    Err(err) => error!(
-                                        "{:?}",
-                                        err.wrap_err("Failed to upload rarities for new medals")
-                                    ),
+                                    Err(err) => {
+                                        error!(?err, "Failed to store rarities for new medals")
+                                    }
                                 }
                             }
                         }
@@ -138,11 +141,11 @@ impl Context {
                         }
                     };
 
-                    // Upload medals if required
+                    // Store medals if required
                     if task.medals() {
-                        match self.client.upload_medals(&medals).await {
-                            Ok(res) => info!("Successfully uploaded {} medals{res}", medals.len()),
-                            Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
+                        match self.mysql.store_medals(&medals).await {
+                            Ok(_) => info!("Successfully stored {} medals", medals.len()),
+                            Err(err) => error!(?err, "Failed to store medals"),
                         }
                     }
 
@@ -152,10 +155,10 @@ impl Context {
             }
         }
 
-        // Notify osekai that we're done uploading
-        match self.client.finish_uploading(progress.into()).await {
-            Ok(res) => info!("Successfully finished uploading{res}"),
-            Err(err) => error!("{:?}", err.wrap_err("Failed to finish uploading")),
+        // Notify osekai that we're done storing
+        match self.client.finish_storing(progress.into()).await {
+            Ok(res) => info!("Successfully finished storing{res}"),
+            Err(err) => error!("{:?}", err.wrap_err("Failed to finish storing")),
         }
     }
 
@@ -306,7 +309,7 @@ impl Context {
 
                 if let Some(slim_badge) = slim_badge {
                     badge.id = Some(slim_badge.id);
-                    badge.users.extend(&*slim_badge.users);
+                    badge.users.extend(&slim_badge.users);
                 }
             }
         }
@@ -340,30 +343,24 @@ impl Context {
             return;
         };
 
-        // Upload rarities if required
+        // Store rarities if required
         if task.rarity() {
-            match self.client.upload_rarity(&rarities).await {
-                Ok(res) => info!(
-                    "Successfully uploaded {} medal rarities{res}",
-                    rarities.len()
-                ),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload medal rarities")),
+            match self.mysql.store_rarities(&rarities).await {
+                Ok(_) => info!("Successfully stored {} medal rarities", rarities.len()),
+                Err(err) => error!(?err, "Failed to store medal rarities"),
             }
         }
 
-        // Calculate and upload user rankings if required
+        // Calculate and store user rankings if required
         if task.ranking() {
             let ranking: Vec<_> = users
                 .into_iter()
                 .map(|user| RankingUser::new(user, &rarities))
                 .collect();
 
-            match self.client.upload_ranking(&ranking).await {
-                Ok(res) => info!(
-                    "Successfully uploaded {} ranking entries{res}",
-                    ranking.len()
-                ),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload ranking")),
+            match self.mysql.store_rankings(&ranking).await {
+                Ok(_) => info!("Successfully stored {} ranking entries", ranking.len()),
+                Err(err) => error!(?err, "Failed to store rankings"),
             }
         }
     }

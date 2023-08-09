@@ -10,6 +10,7 @@ static CONFIG: OnceCell<Config> = OnceCell::new();
 
 pub struct Config {
     pub tokens: Tokens,
+    pub database_url: Box<str>,
     pub url_base: Uri,
     pub schedule: Schedule,
 }
@@ -59,6 +60,7 @@ pub fn init(args: &mut Args) -> Result<()> {
             osu_client_id: env_var("OSU_CLIENT_ID")?,
             osu_client_secret: env_var("OSU_CLIENT_SECRET")?,
         },
+        database_url: env_var("DATABASE_URL")?,
         url_base: env_var("URL_BASE")?,
         schedule: env::var("SCHEDULE")
             .map_err(|_| eyre!("missing env variable `SCHEDULE`"))?
