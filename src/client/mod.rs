@@ -113,7 +113,7 @@ impl Client {
     }
 
     /// Notify osekai that the upload iteration is finished
-    pub async fn finish_uploading(&self, finish: Finish) -> Result<OsekaiResponse> {
+    pub async fn finish_storing(&self, finish: Finish) -> Result<OsekaiResponse> {
         let url = format!("{base}finish.php", base = Config::get().url_base);
         let bytes = self.send_post_request_retry(&url, &finish).await?;
 
