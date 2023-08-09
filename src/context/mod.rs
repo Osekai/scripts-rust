@@ -143,9 +143,9 @@ impl Context {
 
                     // Upload medals if required
                     if task.medals() {
-                        match self.client.upload_medals(&medals).await {
-                            Ok(res) => info!("Successfully uploaded {} medals{res}", medals.len()),
-                            Err(err) => error!("{:?}", err.wrap_err("Failed to upload medals")),
+                        match self.mysql.store_medals(&medals).await {
+                            Ok(_) => info!("Successfully uploaded {} medals", medals.len()),
+                            Err(err) => error!(?err, "Failed to store medals"),
                         }
                     }
 

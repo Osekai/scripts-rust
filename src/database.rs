@@ -1,9 +1,9 @@
 use std::ops::DerefMut;
 
 use eyre::{Context as _, Result};
-use sqlx::{pool::PoolConnection, MySql, MySqlPool, Transaction};
+use sqlx::{pool::PoolConnection, Error as SqlxError, MySql, MySqlPool, Transaction};
 
-use crate::model::{BadgeEntry, BadgeKey, Badges, MedalRarities, MedalRarityEntry};
+use crate::model::{BadgeEntry, BadgeKey, Badges, MedalRarities, MedalRarityEntry, ScrapedMedal};
 
 pub struct Database {
     mysql: MySqlPool,
@@ -24,15 +24,75 @@ impl Database {
             .context("failed to acquire database connection")
     }
 
-    async fn begin(&self) -> Result<Transaction<'_, MySql>> {
-        self.mysql
+    async fn begin(&self) -> Result<Transaction<'_, MySql>, SqlxError> {
+        self.mysql.begin().await
+    }
+
+    pub async fn store_medals(&self, medals: &[ScrapedMedal]) -> Result<()> {
+        let mut tx = self
             .begin()
             .await
-            .context("failed to begin database transaction")
+            .context("failed to begin transaction for Medals")?;
+
+        for medal in medals {
+            let ScrapedMedal {
+                icon_url,
+                id,
+                name,
+                grouping,
+                ordering,
+                slug: _,
+                description,
+                mode,
+                instructions,
+            } = medal;
+
+            let query = sqlx::query!(
+                r#"
+INSERT INTO Medals (
+  medalid, name, link, description, 
+  restriction, `grouping`, instructions, 
+  ordering
+) 
+VALUES 
+  (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY 
+UPDATE 
+  medalid = VALUES(medalid), 
+  name = VALUES(name), 
+  link = VALUES(link), 
+  description = VALUES(description), 
+  restriction = VALUES(restriction), 
+  `grouping` = VALUES(`grouping`), 
+  ordering = VALUES(ordering), 
+  instructions = VALUES(instructions)"#,
+                id,
+                name.as_ref(),
+                icon_url.as_ref(),
+                description.as_ref(),
+                mode.as_deref(),
+                grouping.as_ref(),
+                ordering,
+                instructions.as_deref(),
+            );
+
+            query
+                .execute(tx.deref_mut())
+                .await
+                .context("failed to execute Medals query")?;
+        }
+
+        tx.commit()
+            .await
+            .context("failed to commit Medals transaction")?;
+
+        Ok(())
     }
 
     pub async fn store_rarities(&self, rarities: &MedalRarities) -> Result<()> {
-        let mut tx = self.begin().await?;
+        let mut tx = self
+            .begin()
+            .await
+            .context("failed to begin transaction for MedalRarity")?;
 
         for (medal_id, MedalRarityEntry { count, frequency }) in rarities.iter() {
             let query = sqlx::query!(
@@ -63,7 +123,10 @@ UPDATE
     }
 
     pub async fn store_badges(&self, badges: &Badges) -> Result<()> {
-        let mut tx = self.begin().await?;
+        let mut tx = self
+            .begin()
+            .await
+            .context("failed to begin transaction for Badges")?;
 
         sqlx::query!("DELETE FROM Badges")
             .execute(tx.deref_mut())
