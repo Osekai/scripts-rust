@@ -160,18 +160,22 @@ impl Client {
         }
     }
 
+    #[cfg_attr(debug_assertions, allow(unused))]
     async fn send_post_request<J>(&self, url: &str, data: &J) -> Result<Bytes>
     where
         J: Serialize,
     {
         trace!("Sending POST request to url {url}");
 
+        #[cfg(debug_assertions)]
+        return Ok(Bytes::new());
+
         let form = Multipart::new()
-            .push_text("key", &Config::get().tokens.post)
+            .push_text("key", Config::get().tokens.post.as_ref())
             .push_json("data", data)
             .context("failed to push json onto multipart")?;
 
-        let content_type = format!("multipart/form-data; boundary={}", form.boundary());
+        let content_type = form.content_type();
         let form = BodyBytes::from(form);
 
         let req = Request::builder()

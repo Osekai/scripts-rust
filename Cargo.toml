@@ -1,6 +1,6 @@
 [package]
 name = "osekai-scripts"
-version = "1.0.14"
+version = "1.0.15"
 authors = ["MaxOhn <ohn.m@hotmail.de>"]
 edition = "2021"
 
@@ -11,11 +11,11 @@ dotenv = { version = "0.15" }
 eyre = { version = "0.6" }
 http = { version = "0.2" }
 hyper = { version = "0.14", default-features = false }
-hyper-rustls = { version = "0.23", default-features = false, features = ["http1", "tls12", "tokio-runtime", "webpki-tokio"] }
+hyper-rustls = { version = "0.24", default-features = false, features = ["http1", "tls12", "tokio-runtime", "webpki-tokio"] }
 once_cell = { version = "1.0" }
 rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
 rosu-v2 = { git = "https://github.com/MaxOhn/rosu-v2", branch = "next", default-features = false }
-scraper = { version = "0.13", default-features = false }
+scraper = { version = "0.16", default-features = false }
 self_update = { version = "0.37", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }

@@ -43,6 +43,7 @@ impl Database {
                 taiko_level,
                 ctb_level,
                 mania_level,
+                total_pp,
                 stdev_pp,
                 standard_pp,
                 taiko_pp,
@@ -70,7 +71,7 @@ impl Database {
             let query = sqlx::query!(
                 r#"
 INSERT INTO Ranking (
-  id, name, stdev_pp, standard_pp, taiko_pp, 
+  id, name, total_pp, stdev_pp, standard_pp, taiko_pp, 
   ctb_pp, mania_pp, medal_count, rarest_medal, 
   country_code, standard_global, taiko_global, 
   ctb_global, mania_global, badge_count, 
@@ -86,11 +87,12 @@ VALUES
   (
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-    ?, ?, ?
+    ?, ?, ?, ?
   ) ON DUPLICATE KEY 
 UPDATE 
   id = VALUES(id), 
   name = VALUES(name), 
+  total_pp = VALUES(total_pp), 
   stdev_pp = VALUES(stdev_pp), 
   standard_pp = VALUES(standard_pp), 
   taiko_pp = VALUES(taiko_pp), 
@@ -125,6 +127,7 @@ UPDATE
   kudosu = VALUES(kudosu)"#,
                 id,
                 name.as_ref(),
+                total_pp,
                 stdev_pp,
                 standard_pp,
                 taiko_pp,
