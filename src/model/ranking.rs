@@ -1,11 +1,7 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
-
-use serde::{Serialize, Serializer};
 use time::OffsetDateTime;
 
 use super::{MedalRarities, OsuUser};
 
-#[derive(Serialize)]
 pub struct RankingUser {
     pub id: u32,
     pub name: Box<str>,
@@ -26,9 +22,7 @@ pub struct RankingUser {
     pub ctb_pp: f32,
     pub mania_pp: f32,
     pub medal_count: u16,
-    #[serde(rename(serialize = "rarest_medal"))]
     pub rarest_medal_id: u16,
-    #[serde(serialize_with = "serialize_datetime")]
     pub rarest_medal_achieved: OffsetDateTime,
     pub country_code: Box<str>,
     pub standard_global: Option<u32>,
@@ -43,7 +37,6 @@ pub struct RankingUser {
     pub replays_watched: u32,
     pub avatar_url: Box<str>,
     pub kudosu: i32,
-    #[serde(serialize_with = "bool_to_int")]
     pub restricted: bool,
 }
 
@@ -168,34 +161,5 @@ impl RankingUser {
                 avatar_url: Default::default(),
             },
         }
-    }
-}
-
-fn serialize_datetime<S: Serializer>(datetime: &OffsetDateTime, s: S) -> Result<S::Ok, S::Error> {
-    s.collect_str(&DateTime(datetime))
-}
-
-fn bool_to_int<S: Serializer>(value: &bool, s: S) -> Result<S::Ok, S::Error> {
-    s.serialize_u8(*value as u8)
-}
-
-struct DateTime<'a>(&'a OffsetDateTime);
-
-impl Display for DateTime<'_> {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let date = self.0.date();
-        let time = self.0.time();
-
-        write!(
-            f,
-            "{}-{}-{} {}:{}:{}",
-            date.year(),
-            date.month() as u8,
-            date.day(),
-            time.hour(),
-            time.minute(),
-            time.second(),
-        )
     }
 }

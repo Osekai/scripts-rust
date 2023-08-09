@@ -6,8 +6,7 @@ use std::{
 
 use serde::{
     de::{DeserializeSeed, Error as SerdeError, MapAccess, SeqAccess, Visitor},
-    ser::{SerializeMap, SerializeSeq},
-    Deserialize, Deserializer, Serialize, Serializer,
+    Deserialize, Deserializer,
 };
 
 use crate::util::IntHasher;
@@ -53,44 +52,6 @@ impl FromIterator<(u16, u32, f32)> for MedalRarities {
             .collect();
 
         Self { inner }
-    }
-}
-
-impl Serialize for MedalRarities {
-    #[inline]
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        let mut s = s.serialize_seq(Some(self.inner.len()))?;
-
-        for (key, value) in self.inner.iter() {
-            let entry = BorrowedRarity::new(*key, value);
-            s.serialize_element(&entry)?;
-        }
-
-        s.end()
-    }
-}
-
-struct BorrowedRarity<'r> {
-    medal_id: u16,
-    rarity: &'r MedalRarityEntry,
-}
-
-impl<'r> BorrowedRarity<'r> {
-    fn new(medal_id: u16, rarity: &'r MedalRarityEntry) -> Self {
-        Self { medal_id, rarity }
-    }
-}
-
-impl Serialize for BorrowedRarity<'_> {
-    #[inline]
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        let mut s = s.serialize_map(Some(3))?;
-
-        s.serialize_entry("medalid", &self.medal_id)?;
-        s.serialize_entry("count", &self.rarity.count)?;
-        s.serialize_entry("frequency", &self.rarity.frequency)?;
-
-        s.end()
     }
 }
 
