@@ -83,6 +83,10 @@ impl BadgeOwners {
     fn insert(&mut self, user_id: u32) {
         self.0.insert(user_id);
     }
+
+    pub fn extend(&mut self, user_ids: &[u32]) {
+        self.0.extend(user_ids);
+    }
 }
 
 impl Default for BadgeOwners {

@@ -309,7 +309,7 @@ impl Context {
 
                 if let Some(slim_badge) = slim_badge {
                     badge.id = Some(slim_badge.id);
-                    badge.users.extend(&*slim_badge.users);
+                    badge.users.extend(&slim_badge.users);
                 }
             }
         }
@@ -345,12 +345,9 @@ impl Context {
 
         // Upload rarities if required
         if task.rarity() {
-            match self.client.upload_rarity(&rarities).await {
-                Ok(res) => info!(
-                    "Successfully uploaded {} medal rarities{res}",
-                    rarities.len()
-                ),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload medal rarities")),
+            match self.mysql.store_rarities(&rarities).await {
+                Ok(_) => info!("Successfully uploaded {} medal rarities", rarities.len()),
+                Err(err) => error!(?err, "Failed to store medal rarities"),
             }
         }
 
@@ -361,12 +358,9 @@ impl Context {
                 .map(|user| RankingUser::new(user, &rarities))
                 .collect();
 
-            match self.client.upload_ranking(&ranking).await {
-                Ok(res) => info!(
-                    "Successfully uploaded {} ranking entries{res}",
-                    ranking.len()
-                ),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload ranking")),
+            match self.mysql.store_rankings(&ranking).await {
+                Ok(_) => info!("Successfully uploaded {} ranking entries", ranking.len()),
+                Err(err) => error!(?err, "Failed to store rankings"),
             }
         }
     }
