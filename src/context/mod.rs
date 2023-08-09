@@ -103,8 +103,8 @@ impl Context {
         // Upload badges if required
         if !badges.is_empty() && task.badges() {
             match self.mysql.store_badges(&badges).await {
-                Ok(_) => info!("Successfully uploaded {} badges", badges.len()),
-                Err(err) => error!(?err, "Failed to upload badges"),
+                Ok(_) => info!("Successfully stored {} badges", badges.len()),
+                Err(err) => error!(?err, "Failed to store badges"),
             }
         }
 
@@ -125,15 +125,14 @@ impl Context {
 
                             // If there are new medals, upload their rarities
                             if !new_medals.is_empty() {
-                                match self.client.upload_rarity(&new_medals).await {
-                                    Ok(res) => info!(
-                                        "Successfully uploaded rarities for {} new medals{res}",
+                                match self.mysql.store_rarities(&new_medals).await {
+                                    Ok(_) => info!(
+                                        "Successfully stored rarities for {} new medals",
                                         new_medals.len()
                                     ),
-                                    Err(err) => error!(
-                                        "{:?}",
-                                        err.wrap_err("Failed to upload rarities for new medals")
-                                    ),
+                                    Err(err) => {
+                                        error!(?err, "Failed to store rarities for new medals")
+                                    }
                                 }
                             }
                         }

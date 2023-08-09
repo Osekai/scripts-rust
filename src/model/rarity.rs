@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Iter, HashMap},
     fmt::{Formatter, Result as FmtResult},
     iter::FromIterator,
 };
@@ -33,6 +33,10 @@ impl MedalRarities {
 
     pub fn len(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn iter(&self) -> Iter<'_, u16, MedalRarityEntry> {
+        self.inner.iter()
     }
 }
 
