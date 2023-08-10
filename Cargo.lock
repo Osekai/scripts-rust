@@ -1304,6 +1304,7 @@ dependencies = [
  "clap",
  "dotenv",
  "eyre",
+ "futures-util",
  "http",
  "hyper",
  "hyper-rustls 0.24.1",

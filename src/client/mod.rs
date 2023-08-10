@@ -68,42 +68,6 @@ impl Client {
         }
     }
 
-    /// Request all medals stored by osekai
-    pub async fn get_osekai_medals(&self) -> Result<Bytes> {
-        let url = format!("{base}down_medals.php", base = Config::get().url_base);
-
-        self.send_get_request_retry(url).await
-    }
-
-    /// Request all badges stored by osekai
-    pub async fn get_osekai_badges(&self) -> Result<Bytes> {
-        let url = format!("{base}down_badges.php", base = Config::get().url_base);
-
-        self.send_get_request_retry(url).await
-    }
-
-    /// Request all user ids stored by osekai
-    pub async fn get_osekai_members(&self) -> Result<Bytes> {
-        let url = format!("{base}down_members.php", base = Config::get().url_base);
-
-        self.send_get_request_retry(url).await
-    }
-
-    /// Request all ranking user ids stored by osekai
-    pub async fn get_osekai_ranking(&self) -> Result<Bytes> {
-        let url = format!("{base}down_ranking_ids.php", base = Config::get().url_base);
-
-        self.send_get_request_retry(url).await
-    }
-
-    /// Request all medal rarities stored by osekai
-    pub async fn get_osekai_rarities(&self) -> Result<Bytes> {
-        let base = &Config::get().url_base;
-        let url = format!("{base}down_rarity.php");
-
-        self.send_get_request_retry(url).await
-    }
-
     /// Keep osekai posted on what the current progress is
     pub async fn upload_progress(&self, progress: &Progress) -> Result<OsekaiResponse> {
         let url = format!("{base}progression.php", base = Config::get().url_base);

@@ -1,28 +1,14 @@
 use std::ops::DerefMut;
 
 use eyre::{Context as _, Result};
-use sqlx::{Error as SqlxError, MySql, MySqlPool, Transaction};
 
 use crate::model::{
     BadgeEntry, BadgeKey, Badges, MedalRarities, MedalRarityEntry, RankingUser, ScrapedMedal,
 };
 
-pub struct Database {
-    mysql: MySqlPool,
-}
+use super::Database;
 
 impl Database {
-    pub async fn new(url: &str) -> Result<Self> {
-        MySqlPool::connect(url)
-            .await
-            .map(|mysql| Self { mysql })
-            .context("failed to connect to database")
-    }
-
-    async fn begin(&self) -> Result<Transaction<'_, MySql>, SqlxError> {
-        self.mysql.begin().await
-    }
-
     pub async fn store_rankings(&self, rankings: &[RankingUser]) -> Result<()> {
         let mut tx = self
             .begin()

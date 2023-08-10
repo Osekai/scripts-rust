@@ -114,8 +114,8 @@ impl Context {
         if task != Task::BADGES {
             match self.request_medals().await {
                 Ok(medals) => {
-                    // Request osekai medals to see if we received new ones
-                    match self.request_osekai_medals().await {
+                    // Fetch medal ids to see if we received new ones
+                    match self.mysql.fetch_medal_ids().await {
                         Ok(old_medals) => {
                             let new_medals: MedalRarities = medals
                                 .iter()
@@ -136,9 +136,7 @@ impl Context {
                                 }
                             }
                         }
-                        Err(err) => {
-                            error!("{:?}", err.wrap_err("Failed to request osekai medals"))
-                        }
+                        Err(err) => error!(?err, "Failed to fetch medal ids from DB"),
                     };
 
                     // Store medals if required
@@ -331,13 +329,9 @@ impl Context {
         } else if task.ranking() {
             // Only osekai users were retrieved, dont calculate rarities
             // and instead just request them from osekai
-            match self.request_osekai_rarities().await {
+            match self.mysql.fetch_medal_rarities().await {
                 Ok(rarities) => rarities,
-                Err(err) => {
-                    let err = err.wrap_err("Failed to request osekai medal rarities");
-
-                    return error!("{err:?}");
-                }
+                Err(err) => return error!(?err, "Failed to fetch medal rarities from DB"),
             }
         } else {
             return;
