@@ -111,21 +111,6 @@ impl Context {
         info!("Finished requesting {max_page} leaderboard pages for all modes");
     }
 
-    /// Request all user ids stored by osekai
-    pub async fn request_osekai_users(&self) -> Result<HashSet<u32, IntHasher>> {
-        let bytes = self
-            .client
-            .get_osekai_members()
-            .await
-            .context("failed to get osekai members")?;
-
-        serde_json::from_slice(&bytes).with_context(|| {
-            let text = String::from_utf8_lossy(&bytes);
-
-            format!("failed to deserialize osekai members: {text}")
-        })
-    }
-
     pub async fn request_osekai_ranking(
         &self,
         user_ids: &mut HashSet<u32, IntHasher>,

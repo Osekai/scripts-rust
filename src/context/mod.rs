@@ -168,10 +168,10 @@ impl Context {
         // If medals are the only thing that should be updated, requesting users is not necessary
         let mut user_ids = if task != Task::MEDALS {
             // Otherwise request the user ids stored by osekai
-            match self.request_osekai_users().await {
+            match self.mysql.fetch_osekai_user_ids().await {
                 Ok(users) => users,
                 Err(err) => {
-                    error!("{:?}", err.wrap_err("Failed to request osekai users"));
+                    error!(?err, "Failed to fetch osekai user ids");
 
                     HashSet::with_hasher(IntHasher)
                 }

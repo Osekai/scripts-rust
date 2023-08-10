@@ -11,6 +11,28 @@ use crate::{
 use super::Database;
 
 impl Database {
+    pub async fn fetch_osekai_user_ids(&self) -> Result<HashSet<u32, IntHasher>> {
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to fetch user ids")?;
+
+        let query = sqlx::query!(
+            r#"
+SELECT 
+  id 
+FROM 
+  Members"#
+        );
+
+        query
+            .fetch(conn.deref_mut())
+            .map_ok(|row| row.id as u32)
+            .try_collect()
+            .await
+            .context("failed to fetch all user ids")
+    }
+
     /// The resulting badges will be sorted by their description.
     pub async fn fetch_badges(&self) -> Result<Vec<SlimBadge>> {
         let mut conn = self
