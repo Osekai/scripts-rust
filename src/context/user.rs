@@ -1,18 +1,10 @@
-use std::{
-    collections::HashSet,
-    fmt::{Formatter, Result as FmtResult},
-};
+use std::collections::HashSet;
 
-use eyre::{Context as _, Report, Result};
+use eyre::Report;
 use rosu_v2::{
     prelude::{GameMode, OsuError, Rankings},
     OsuResult,
 };
-use serde::{
-    de::{SeqAccess, Visitor},
-    Deserializer as _,
-};
-use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{
     model::{OsuUser, UserFull},
@@ -109,43 +101,5 @@ impl Context {
         }
 
         info!("Finished requesting {max_page} leaderboard pages for all modes");
-    }
-
-    pub async fn request_osekai_ranking(
-        &self,
-        user_ids: &mut HashSet<u32, IntHasher>,
-    ) -> Result<()> {
-        let bytes = self
-            .client
-            .get_osekai_ranking()
-            .await
-            .context("failed to get osekai ranking")?;
-
-        Deserializer::new(SliceRead::new(&bytes))
-            .deserialize_seq(UserIdVisitor(user_ids))
-            .with_context(|| {
-                let text = String::from_utf8_lossy(&bytes);
-
-                format!("failed to deserialize osekai ranking: {text}")
-            })
-    }
-}
-
-struct UserIdVisitor<'u>(&'u mut HashSet<u32, IntHasher>);
-
-impl<'de> Visitor<'de> for UserIdVisitor<'_> {
-    type Value = ();
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("a list containing user ids")
-    }
-
-    #[inline]
-    fn visit_seq<A: SeqAccess<'de>>(self, mut s: A) -> Result<Self::Value, A::Error> {
-        while let Some(elem) = s.next_element()? {
-            self.0.insert(elem);
-        }
-
-        Ok(())
     }
 }

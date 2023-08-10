@@ -84,15 +84,6 @@ impl Client {
         OsekaiResponse::new(bytes)
     }
 
-    async fn send_get_request_retry(&self, url: impl AsRef<str>) -> Result<Bytes> {
-        let url = url.as_ref();
-
-        match self.send_get_request(url).await {
-            Ok(bytes) => Ok(bytes),
-            Err(_) => self.send_get_request(url).await,
-        }
-    }
-
     async fn send_get_request(&self, url: &str) -> Result<Bytes> {
         trace!("Sending GET request to url {url}");
 

@@ -11,6 +11,36 @@ use crate::{
 use super::Database;
 
 impl Database {
+    pub async fn fetch_osekai_ranking_ids(
+        &self,
+        user_ids: &mut HashSet<u32, IntHasher>,
+    ) -> Result<()> {
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to fetch ranking ids")?;
+
+        let query = sqlx::query!(
+            r#"
+SELECT 
+  id 
+FROM 
+  Ranking"#
+        );
+
+        query
+            .fetch(conn.deref_mut())
+            .try_for_each(|row| {
+                user_ids.insert(row.id as u32);
+
+                std::future::ready(Ok(()))
+            })
+            .await
+            .context("failed to fetch all ranking ids")?;
+
+        Ok(())
+    }
+
     pub async fn fetch_osekai_user_ids(&self) -> Result<HashSet<u32, IntHasher>> {
         let mut conn = self
             .acquire()

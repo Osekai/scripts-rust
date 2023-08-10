@@ -195,8 +195,8 @@ impl Context {
 
         // If really ALL users are wanted, get them from osekai
         if task.contains(Task::FULL) && !args.debug {
-            if let Err(err) = self.request_osekai_ranking(&mut user_ids).await {
-                error!("{:?}", err.wrap_err("Failed to get osekai ranking"));
+            if let Err(err) = self.mysql.fetch_osekai_ranking_ids(&mut user_ids).await {
+                error!(?err, "Failed to fetch osekai ranking ids");
             }
         }
 
