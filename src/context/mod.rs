@@ -205,10 +205,10 @@ impl Context {
 
         // Request badges stored by osekai so we know their ID and can extend the users
         let (check_badges, stored_badges) = if task.badges() {
-            match self.request_osekai_badges().await {
+            match self.mysql.fetch_badges().await {
                 Ok(badges) => (true, badges),
                 Err(err) => {
-                    error!("{:?}", err.wrap_err("Failed to get osekai badges"));
+                    error!(?err, "Failed to fetch badges from DB");
 
                     (false, Vec::new())
                 }

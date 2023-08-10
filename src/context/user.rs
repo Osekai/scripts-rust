@@ -15,7 +15,7 @@ use serde::{
 use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{
-    model::{OsuUser, SlimBadge, UserFull},
+    model::{OsuUser, UserFull},
     util::{Eta, IntHasher},
 };
 
@@ -142,31 +142,6 @@ impl Context {
                 let text = String::from_utf8_lossy(&bytes);
 
                 format!("failed to deserialize osekai ranking: {text}")
-            })
-    }
-
-    /// Request all badges stored by osekai.
-    ///
-    /// The resulting badges will be sorted by their description.
-    pub async fn request_osekai_badges(&self) -> Result<Vec<SlimBadge>> {
-        let bytes = self
-            .client
-            .get_osekai_badges()
-            .await
-            .context("failed to get osekai badges")?;
-
-        serde_json::from_slice(&bytes)
-            // Collecting into a Vec followed by sorting appears to be a tiny bit faster than
-            // collecting into a BinaryHeap followed by converting into a Vec
-            .map(|mut badges: Vec<SlimBadge>| {
-                badges.sort_unstable();
-
-                badges
-            })
-            .with_context(|| {
-                let text = String::from_utf8_lossy(&bytes);
-
-                format!("failed to deserialize osekai badges: {text}")
             })
     }
 }
