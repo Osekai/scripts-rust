@@ -10,7 +10,6 @@ use serde::{
     de::{DeserializeSeed, Error as SerdeError, IgnoredAny, MapAccess, SeqAccess, Visitor},
     Deserializer as DeserializerTrait,
 };
-use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{
     model::{MedalRarities, OsuUser, ScrapedMedal, ScrapedUser},
@@ -43,37 +42,6 @@ impl Context {
             .with_context(|| format!("failed to deserialize scraped data: {data}"))?;
 
         Ok(deserialized.medals)
-    }
-
-    pub async fn request_osekai_medals(&self) -> Result<HashSet<u16, IntHasher>> {
-        let bytes = self
-            .client
-            .get_osekai_medals()
-            .await
-            .context("failed to get osekai medals")?;
-
-        Deserializer::new(SliceRead::new(&bytes))
-            .deserialize_seq(MedalsVisitor)
-            .with_context(|| {
-                let text = String::from_utf8_lossy(&bytes);
-
-                format!("failed to deserialize osekai medals: {text}")
-            })
-    }
-
-    /// Request all medal rarities stored by osekai
-    pub async fn request_osekai_rarities(&self) -> Result<MedalRarities> {
-        let bytes = self
-            .client
-            .get_osekai_rarities()
-            .await
-            .context("failed to get osekai rarities")?;
-
-        serde_json::from_slice(&bytes).with_context(|| {
-            let text = String::from_utf8_lossy(&bytes);
-
-            format!("failed to deserialize osekai rarities: {text}")
-        })
     }
 
     /// Calculate each medal's rarity i.e. how many users obtained it

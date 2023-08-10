@@ -114,8 +114,8 @@ impl Context {
         if task != Task::BADGES {
             match self.request_medals().await {
                 Ok(medals) => {
-                    // Request osekai medals to see if we received new ones
-                    match self.request_osekai_medals().await {
+                    // Fetch medal ids to see if we received new ones
+                    match self.mysql.fetch_medal_ids().await {
                         Ok(old_medals) => {
                             let new_medals: MedalRarities = medals
                                 .iter()
@@ -136,9 +136,7 @@ impl Context {
                                 }
                             }
                         }
-                        Err(err) => {
-                            error!("{:?}", err.wrap_err("Failed to request osekai medals"))
-                        }
+                        Err(err) => error!(?err, "Failed to fetch medal ids from DB"),
                     };
 
                     // Store medals if required
@@ -167,13 +165,13 @@ impl Context {
         task: Task,
         args: &Args,
     ) -> (Vec<OsuUser>, Badges, Progress) {
-        // If medals are the only thing that should be updated, requesting users is not necessary
+        // If medals are the only thing that should be updated, fetching users is not necessary
         let mut user_ids = if task != Task::MEDALS {
-            // Otherwise request the user ids stored by osekai
-            match self.request_osekai_users().await {
+            // Otherwise fetch the user ids stored by osekai
+            match self.mysql.fetch_osekai_user_ids().await {
                 Ok(users) => users,
                 Err(err) => {
-                    error!("{:?}", err.wrap_err("Failed to request osekai users"));
+                    error!(?err, "Failed to fetch osekai user ids");
 
                     HashSet::with_hasher(IntHasher)
                 }
@@ -195,22 +193,22 @@ impl Context {
             self.request_leaderboards(&mut user_ids, pages).await;
         }
 
-        // If really ALL users are wanted, get them from osekai
+        // If really ALL users are wanted, fetch them from osekai
         if task.contains(Task::FULL) && !args.debug {
-            if let Err(err) = self.request_osekai_ranking(&mut user_ids).await {
-                error!("{:?}", err.wrap_err("Failed to get osekai ranking"));
+            if let Err(err) = self.mysql.fetch_osekai_ranking_ids(&mut user_ids).await {
+                error!(?err, "Failed to fetch osekai ranking ids");
             }
         }
 
         // In case additional user ids were given through CLI, add them here
         user_ids.extend(&args.extras);
 
-        // Request badges stored by osekai so we know their ID and can extend the users
+        // Fetch badges stored by osekai so we know their ID and can extend the users
         let (check_badges, stored_badges) = if task.badges() {
-            match self.request_osekai_badges().await {
+            match self.mysql.fetch_badges().await {
                 Ok(badges) => (true, badges),
                 Err(err) => {
-                    error!("{:?}", err.wrap_err("Failed to get osekai badges"));
+                    error!(?err, "Failed to fetch badges from DB");
 
                     (false, Vec::new())
                 }
@@ -330,14 +328,10 @@ impl Context {
             Self::calculate_rarities(&users, medals)
         } else if task.ranking() {
             // Only osekai users were retrieved, dont calculate rarities
-            // and instead just request them from osekai
-            match self.request_osekai_rarities().await {
+            // and instead just fetch them from osekai
+            match self.mysql.fetch_medal_rarities().await {
                 Ok(rarities) => rarities,
-                Err(err) => {
-                    let err = err.wrap_err("Failed to request osekai medal rarities");
-
-                    return error!("{err:?}");
-                }
+                Err(err) => return error!(?err, "Failed to fetch medal rarities from DB"),
             }
         } else {
             return;

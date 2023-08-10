@@ -1,21 +1,13 @@
-use std::{
-    collections::HashSet,
-    fmt::{Formatter, Result as FmtResult},
-};
+use std::collections::HashSet;
 
-use eyre::{Context as _, Report, Result};
+use eyre::Report;
 use rosu_v2::{
     prelude::{GameMode, OsuError, Rankings},
     OsuResult,
 };
-use serde::{
-    de::{SeqAccess, Visitor},
-    Deserializer as _,
-};
-use serde_json::{de::SliceRead, Deserializer};
 
 use crate::{
-    model::{OsuUser, SlimBadge, UserFull},
+    model::{OsuUser, UserFull},
     util::{Eta, IntHasher},
 };
 
@@ -109,83 +101,5 @@ impl Context {
         }
 
         info!("Finished requesting {max_page} leaderboard pages for all modes");
-    }
-
-    /// Request all user ids stored by osekai
-    pub async fn request_osekai_users(&self) -> Result<HashSet<u32, IntHasher>> {
-        let bytes = self
-            .client
-            .get_osekai_members()
-            .await
-            .context("failed to get osekai members")?;
-
-        serde_json::from_slice(&bytes).with_context(|| {
-            let text = String::from_utf8_lossy(&bytes);
-
-            format!("failed to deserialize osekai members: {text}")
-        })
-    }
-
-    pub async fn request_osekai_ranking(
-        &self,
-        user_ids: &mut HashSet<u32, IntHasher>,
-    ) -> Result<()> {
-        let bytes = self
-            .client
-            .get_osekai_ranking()
-            .await
-            .context("failed to get osekai ranking")?;
-
-        Deserializer::new(SliceRead::new(&bytes))
-            .deserialize_seq(UserIdVisitor(user_ids))
-            .with_context(|| {
-                let text = String::from_utf8_lossy(&bytes);
-
-                format!("failed to deserialize osekai ranking: {text}")
-            })
-    }
-
-    /// Request all badges stored by osekai.
-    ///
-    /// The resulting badges will be sorted by their description.
-    pub async fn request_osekai_badges(&self) -> Result<Vec<SlimBadge>> {
-        let bytes = self
-            .client
-            .get_osekai_badges()
-            .await
-            .context("failed to get osekai badges")?;
-
-        serde_json::from_slice(&bytes)
-            // Collecting into a Vec followed by sorting appears to be a tiny bit faster than
-            // collecting into a BinaryHeap followed by converting into a Vec
-            .map(|mut badges: Vec<SlimBadge>| {
-                badges.sort_unstable();
-
-                badges
-            })
-            .with_context(|| {
-                let text = String::from_utf8_lossy(&bytes);
-
-                format!("failed to deserialize osekai badges: {text}")
-            })
-    }
-}
-
-struct UserIdVisitor<'u>(&'u mut HashSet<u32, IntHasher>);
-
-impl<'de> Visitor<'de> for UserIdVisitor<'_> {
-    type Value = ();
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("a list containing user ids")
-    }
-
-    #[inline]
-    fn visit_seq<A: SeqAccess<'de>>(self, mut s: A) -> Result<Self::Value, A::Error> {
-        while let Some(elem) = s.next_element()? {
-            self.0.insert(elem);
-        }
-
-        Ok(())
     }
 }
