@@ -165,9 +165,9 @@ impl Context {
         task: Task,
         args: &Args,
     ) -> (Vec<OsuUser>, Badges, Progress) {
-        // If medals are the only thing that should be updated, requesting users is not necessary
+        // If medals are the only thing that should be updated, fetching users is not necessary
         let mut user_ids = if task != Task::MEDALS {
-            // Otherwise request the user ids stored by osekai
+            // Otherwise fetch the user ids stored by osekai
             match self.mysql.fetch_osekai_user_ids().await {
                 Ok(users) => users,
                 Err(err) => {
@@ -193,7 +193,7 @@ impl Context {
             self.request_leaderboards(&mut user_ids, pages).await;
         }
 
-        // If really ALL users are wanted, get them from osekai
+        // If really ALL users are wanted, fetch them from osekai
         if task.contains(Task::FULL) && !args.debug {
             if let Err(err) = self.mysql.fetch_osekai_ranking_ids(&mut user_ids).await {
                 error!(?err, "Failed to fetch osekai ranking ids");
@@ -203,7 +203,7 @@ impl Context {
         // In case additional user ids were given through CLI, add them here
         user_ids.extend(&args.extras);
 
-        // Request badges stored by osekai so we know their ID and can extend the users
+        // Fetch badges stored by osekai so we know their ID and can extend the users
         let (check_badges, stored_badges) = if task.badges() {
             match self.mysql.fetch_badges().await {
                 Ok(badges) => (true, badges),
@@ -328,7 +328,7 @@ impl Context {
             Self::calculate_rarities(&users, medals)
         } else if task.ranking() {
             // Only osekai users were retrieved, dont calculate rarities
-            // and instead just request them from osekai
+            // and instead just fetch them from osekai
             match self.mysql.fetch_medal_rarities().await {
                 Ok(rarities) => rarities,
                 Err(err) => return error!(?err, "Failed to fetch medal rarities from DB"),
