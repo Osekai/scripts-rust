@@ -1,4 +1,4 @@
-use std::ops::DerefMut;
+use std::{num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
 
@@ -103,32 +103,19 @@ LIMIT
             .context("failed to begin transaction for Ranking")?;
 
         for ranking in rankings {
+            let stdev_acc = ranking.std_dev_acc();
+            let stdev_level = ranking.std_dev_level();
+            let stdev_pp = ranking.std_dev_pp();
+            let total_pp = ranking.total_pp();
+
             let RankingUser {
                 id,
                 name,
-                stdev_acc,
-                standard_acc,
-                taiko_acc,
-                ctb_acc,
-                mania_acc,
-                stdev_level,
-                standard_level,
-                taiko_level,
-                ctb_level,
-                mania_level,
-                stdev_pp,
-                standard_pp,
-                taiko_pp,
-                ctb_pp,
-                mania_pp,
+                ignore_acc,
                 medal_count,
                 rarest_medal_id,
                 rarest_medal_achieved,
                 country_code,
-                standard_global,
-                taiko_global,
-                ctb_global,
-                mania_global,
                 badge_count,
                 ranked_maps,
                 loved_maps,
@@ -138,9 +125,23 @@ LIMIT
                 avatar_url,
                 kudosu,
                 restricted,
+                std,
+                tko,
+                ctb,
+                mna,
             } = ranking;
 
-            let total_pp = standard_pp + taiko_pp + ctb_pp + mania_pp;
+            let mut std_acc = std.acc;
+            let mut tko_acc = tko.acc;
+            let mut ctb_acc = ctb.acc;
+            let mut mna_acc = mna.acc;
+
+            if *ignore_acc {
+                std_acc = 0.0;
+                tko_acc = 0.0;
+                ctb_acc = 0.0;
+                mna_acc = 0.0;
+            }
 
             let query = sqlx::query!(
                 r#"
@@ -203,17 +204,17 @@ UPDATE
                 name.as_ref(),
                 total_pp,
                 stdev_pp,
-                standard_pp,
-                taiko_pp,
-                ctb_pp,
-                mania_pp,
+                std.pp,
+                tko.pp,
+                ctb.pp,
+                mna.pp,
                 medal_count,
                 rarest_medal_id,
                 country_code.as_ref(),
-                standard_global,
-                taiko_global,
-                ctb_global,
-                mania_global,
+                std.global_rank.map(NonZeroU32::get),
+                tko.global_rank.map(NonZeroU32::get),
+                ctb.global_rank.map(NonZeroU32::get),
+                mna.global_rank.map(NonZeroU32::get),
                 badge_count,
                 ranked_maps,
                 loved_maps,
@@ -224,15 +225,15 @@ UPDATE
                 rarest_medal_achieved,
                 *restricted as u8,
                 stdev_acc,
-                standard_acc,
-                taiko_acc,
+                std_acc,
+                tko_acc,
                 ctb_acc,
-                mania_acc,
+                mna_acc,
                 stdev_level,
-                standard_level,
-                taiko_level,
-                ctb_level,
-                mania_level,
+                std.level,
+                tko.level,
+                ctb.level,
+                mna.level,
                 kudosu
             );
 
