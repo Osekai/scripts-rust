@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf};
+use std::env;
 
 use eyre::{Context as _, Result};
 use http::Uri;
@@ -11,7 +11,7 @@ static CONFIG: OnceCell<Config> = OnceCell::new();
 pub struct Config {
     pub tokens: Tokens,
     pub database_url: Box<str>,
-    pub url_base: Uri,
+    pub webhook_url: Uri,
     pub schedule: Schedule,
 }
 
@@ -61,7 +61,7 @@ pub fn init(args: &mut Args) -> Result<()> {
             osu_client_secret: env_var("OSU_CLIENT_SECRET")?,
         },
         database_url: env_var("DATABASE_URL")?,
-        url_base: env_var("URL_BASE")?,
+        webhook_url: env_var("WEBHOOK_URL")?,
         schedule: env::var("SCHEDULE")
             .map_err(|_| eyre!("missing env variable `SCHEDULE`"))?
             .parse()
@@ -96,7 +96,6 @@ macro_rules! env_kind {
 env_kind! {
     Box<str>: s => { Ok(s.into_boxed_str()) },
     u64: s => { s.parse().map_err(|_| s) },
-    PathBuf: s => { s.parse().map_err(|_| s) },
     Uri: s => { s.parse().map_err(|_| s) },
 }
 

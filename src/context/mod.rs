@@ -19,6 +19,7 @@ use crate::{
 
 mod medal;
 mod user;
+mod webhook;
 
 pub struct Context {
     client: Client,
@@ -153,10 +154,10 @@ impl Context {
             }
         }
 
-        // Notify osekai that we're done storing
-        match self.client.finish_storing(progress.into()).await {
-            Ok(res) => info!("Successfully finished storing{res}"),
-            Err(err) => error!("{:?}", err.wrap_err("Failed to finish storing")),
+        // Notify a webhook that we're done storing
+        match self.handle_finish(progress.into()).await {
+            Ok(_) => info!("Successfully notified webhook about finishing"),
+            Err(err) => error!(?err, "Failed to notify webhook about finishing"),
         }
     }
 
@@ -233,9 +234,9 @@ impl Context {
         let mut progress = Progress::new(len, task);
 
         if args.progress {
-            match self.client.upload_progress(&progress).await {
-                Ok(res) => info!("Successfully uploaded initial progress{res}"),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload initial progress")),
+            match self.handle_progress(&progress).await {
+                Ok(_) => info!("Successfully handled initial progress"),
+                Err(err) => error!(?err, "Failed to handle initial progress"),
             }
         }
 
@@ -274,9 +275,9 @@ impl Context {
                     progress.update(i, &eta);
                     remaining_users = len - i;
 
-                    match self.client.upload_progress(&progress).await {
-                        Ok(res) => info!("Successfully uploaded progress{res}"),
-                        Err(err) => error!("{:?}", err.wrap_err("Failed to upload progress")),
+                    match self.handle_progress(&progress).await {
+                        Ok(_) => info!("Successfully handled progress"),
+                        Err(err) => error!(?err, "Failed to handle progress"),
                     }
                 }
             }
@@ -287,9 +288,9 @@ impl Context {
         if args.progress {
             progress.finish(remaining_users, &eta);
 
-            match self.client.upload_progress(&progress).await {
-                Ok(res) => info!("Successfully uploaded final progress{res}"),
-                Err(err) => error!("{:?}", err.wrap_err("Failed to upload final progress")),
+            match self.handle_progress(&progress).await {
+                Ok(_) => info!("Successfully handled final progress"),
+                Err(err) => error!(?err, "Failed to handle final progress"),
             }
         }
 
