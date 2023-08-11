@@ -116,7 +116,6 @@ LIMIT
                 taiko_level,
                 ctb_level,
                 mania_level,
-                total_pp,
                 stdev_pp,
                 standard_pp,
                 taiko_pp,
@@ -140,6 +139,8 @@ LIMIT
                 kudosu,
                 restricted,
             } = ranking;
+
+            let total_pp = standard_pp + taiko_pp + ctb_pp + mania_pp;
 
             let query = sqlx::query!(
                 r#"
