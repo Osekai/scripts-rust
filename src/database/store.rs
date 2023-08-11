@@ -261,7 +261,6 @@ UPDATE
                 name,
                 grouping,
                 ordering,
-                slug: _,
                 description,
                 mode,
                 instructions,

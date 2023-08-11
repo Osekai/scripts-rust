@@ -13,7 +13,6 @@ pub struct ScrapedMedal {
     pub name: Box<str>,
     pub grouping: Box<str>,
     pub ordering: u8,
-    pub slug: Box<str>,
     pub description: Box<str>,
     pub mode: Option<Box<str>>,
     pub instructions: Option<Box<str>>,
