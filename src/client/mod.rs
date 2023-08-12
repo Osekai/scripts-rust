@@ -146,7 +146,7 @@ impl Client {
 
         ensure!(
             status.is_success(),
-            "failed with status code {status} when notifying webhook"
+            "failed to notify webhook status={status}"
         );
 
         Ok(())
