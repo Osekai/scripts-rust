@@ -150,7 +150,7 @@ impl Context {
 
                     self.handle_rarities_and_ranking(task, users, &medals).await;
                 }
-                Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
+                Err(err) => error!(?err, "Failed to gather medals"),
             }
         }
 
@@ -248,8 +248,7 @@ impl Context {
             let mut user = match self.request_osu_user(user_id).await {
                 Ok(user) => user,
                 Err(err) => {
-                    let wrap = format!("Failed to request user {user_id} from osu!api");
-                    error!("{:?}", Report::from(err).wrap_err(wrap));
+                    error!(err = ?Report::new(err), "Failed to request user {user_id} from osu!api");
 
                     continue;
                 }

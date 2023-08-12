@@ -57,7 +57,7 @@ fn main() {
         .expect("failed to build runtime");
 
     if let Err(err) = runtime.block_on(async_main(args, task)) {
-        error!("{:?}", err.wrap_err("Critical error in main"));
+        error!(?err, "Critical error in main");
     }
 }
 
@@ -70,7 +70,7 @@ async fn async_main(mut args: Args, task: Option<Task>) -> Result<()> {
         _ = run(ctx, args, task) => {},
         res = signal::ctrl_c() => match res {
             Ok(_) => info!("Received Ctrl+C"),
-            Err(err) => error!("{:?}", Report::new(err).wrap_err("Failed to await Ctrl+C")),
+            Err(err) => error!(err = ?Report::new(err), "Failed to await Ctrl+C"),
         }
     }
 
