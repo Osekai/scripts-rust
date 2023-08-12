@@ -103,13 +103,8 @@ impl Context {
 
         // Store badges if required
         if !badges.is_empty() && task.badges() {
-            match self.mysql.store_badges(&badges).await {
-                Ok(_) => info!("Successfully stored {} badges", badges.len()),
-                Err(err) => error!(?err, "Failed to store badges"),
-            }
+            self.mysql.store_badges(badges);
         }
-
-        drop(badges);
 
         // If badges are all that was required then we're already done
         if task != Task::BADGES {
@@ -126,29 +121,18 @@ impl Context {
 
                             // If there are new medals, store their rarities
                             if !new_medals.is_empty() {
-                                match self.mysql.store_rarities(&new_medals).await {
-                                    Ok(_) => info!(
-                                        "Successfully stored rarities for {} new medals",
-                                        new_medals.len()
-                                    ),
-                                    Err(err) => {
-                                        error!(?err, "Failed to store rarities for new medals")
-                                    }
-                                }
+                                self.mysql.store_rarities(new_medals);
                             }
                         }
                         Err(err) => error!(?err, "Failed to fetch medal ids from DB"),
                     };
 
+                    self.handle_rarities_and_ranking(task, users, &medals).await;
+
                     // Store medals if required
                     if task.medals() {
-                        match self.mysql.store_medals(&medals).await {
-                            Ok(_) => info!("Successfully stored {} medals", medals.len()),
-                            Err(err) => error!(?err, "Failed to store medals"),
-                        }
+                        self.mysql.store_medals(medals);
                     }
-
-                    self.handle_rarities_and_ranking(task, users, &medals).await;
                 }
                 Err(err) => error!(?err, "Failed to gather medals"),
             }
@@ -334,25 +318,19 @@ impl Context {
             return;
         };
 
-        // Store rarities if required
-        if task.rarity() {
-            match self.mysql.store_rarities(&rarities).await {
-                Ok(_) => info!("Successfully stored {} medal rarities", rarities.len()),
-                Err(err) => error!(?err, "Failed to store medal rarities"),
-            }
-        }
-
         // Calculate and store user rankings if required
         if task.ranking() {
-            let ranking: Vec<_> = users
+            let ranking = users
                 .into_iter()
                 .map(|user| RankingUser::new(user, &rarities))
                 .collect();
 
-            match self.mysql.store_rankings(&ranking).await {
-                Ok(_) => info!("Successfully stored {} ranking entries", ranking.len()),
-                Err(err) => error!(?err, "Failed to store rankings"),
-            }
+            self.mysql.store_rankings(ranking);
+        }
+
+        // Store rarities if required
+        if task.rarity() {
+            self.mysql.store_rarities(rarities);
         }
     }
 }

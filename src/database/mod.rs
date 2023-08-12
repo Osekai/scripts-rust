@@ -4,6 +4,7 @@ mod store;
 use eyre::{Context as _, Result};
 use sqlx::{pool::PoolConnection, Error as SqlxError, MySql, MySqlPool, Transaction};
 
+#[derive(Clone)]
 pub struct Database {
     mysql: MySqlPool,
 }
