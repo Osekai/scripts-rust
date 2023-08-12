@@ -22,7 +22,7 @@ serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7", default-features = false }
 sqlx = { version = "0.7", default-features = false, features = ["macros", "mysql", "runtime-tokio-rustls", "time"] }
 time = { version = "0.3", features = ["macros", "parsing"] }
-tokio = { version = "1.20", default-features = false, features = ["macros", "signal"] }
+tokio = { version = "1.20", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 tracing = { version = "0.1" }
 tracing-appender = { version = "0.2" }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt", "smallvec", "std", "time", "tracing-log"] }
