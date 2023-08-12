@@ -1,4 +1,4 @@
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32, vec::IntoIter};
 
 use time::OffsetDateTime;
 
@@ -165,5 +165,33 @@ impl From<ModeStats> for RankingMode {
             level: stats.level,
             pp: stats.pp,
         }
+    }
+}
+
+pub struct RankingsIter {
+    users: IntoIter<OsuUser>,
+    rarities: MedalRarities,
+}
+
+impl RankingsIter {
+    pub fn new(users: Vec<OsuUser>, rarities: MedalRarities) -> Self {
+        Self {
+            users: users.into_iter(),
+            rarities,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.users.len()
+    }
+}
+
+impl Iterator for RankingsIter {
+    type Item = RankingUser;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.users
+            .next()
+            .map(|user| RankingUser::new(user, &self.rarities))
     }
 }

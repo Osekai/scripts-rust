@@ -11,7 +11,7 @@ use crate::{
     client::Client,
     config::Config,
     database::Database,
-    model::{Badges, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
+    model::{Badges, MedalRarities, OsuUser, Progress, RankingsIter, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -320,12 +320,8 @@ impl Context {
 
         // Calculate and store user rankings if required
         if task.ranking() {
-            let ranking = users
-                .into_iter()
-                .map(|user| RankingUser::new(user, &rarities))
-                .collect();
-
-            self.mysql.store_rankings(ranking);
+            let rankings_iter = RankingsIter::new(users, rarities.clone());
+            self.mysql.store_rankings(rankings_iter);
         }
 
         // Store rarities if required

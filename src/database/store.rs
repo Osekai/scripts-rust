@@ -4,7 +4,7 @@ use eyre::{Context as _, Result};
 
 use crate::model::{
     BadgeEntry, BadgeKey, Badges, Finish, MedalRarities, MedalRarityEntry, Progress, RankingUser,
-    ScrapedMedal,
+    RankingsIter, ScrapedMedal,
 };
 
 use super::Database;
@@ -95,8 +95,8 @@ LIMIT
         Ok(())
     }
 
-    pub fn store_rankings(&self, rankings: Box<[RankingUser]>) {
-        async fn inner(db: Database, rankings: &[RankingUser]) -> Result<()> {
+    pub fn store_rankings(&self, rankings: RankingsIter) {
+        async fn inner(db: Database, rankings: RankingsIter) -> Result<()> {
             let mut tx = db
                 .begin()
                 .await
@@ -136,7 +136,7 @@ LIMIT
                 let mut ctb_acc = ctb.acc;
                 let mut mna_acc = mna.acc;
 
-                if *ignore_acc {
+                if ignore_acc {
                     std_acc = 0.0;
                     tko_acc = 0.0;
                     ctb_acc = 0.0;
@@ -223,7 +223,7 @@ UPDATE
                     replays_watched,
                     avatar_url.as_ref(),
                     rarest_medal_achieved,
-                    *restricted as u8,
+                    restricted as u8,
                     stdev_acc,
                     std_acc,
                     tko_acc,
@@ -253,8 +253,10 @@ UPDATE
         let db = self.to_owned();
 
         tokio::spawn(async move {
-            match inner(db, &rankings).await {
-                Ok(_) => info!("Successfully stored {} ranking entries", rankings.len()),
+            let len = rankings.len();
+
+            match inner(db, rankings).await {
+                Ok(_) => info!("Successfully stored {len} ranking entries"),
                 Err(err) => error!(?err, "Failed to store rankings"),
             }
         });

@@ -1,7 +1,7 @@
 pub use self::{
     badge::{BadgeEntry, BadgeKey, Badges, SlimBadge},
     progress::{Finish, Progress},
-    ranking::RankingUser,
+    ranking::{RankingUser, RankingsIter},
     rarity::{MedalRarities, MedalRarityEntry},
     scrap::{ScrapedMedal, ScrapedUser},
     user::{OsuUser, UserFull},

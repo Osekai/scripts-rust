@@ -5,12 +5,13 @@ use std::{
 
 use crate::util::IntHasher;
 
+#[derive(Copy, Clone)]
 pub struct MedalRarityEntry {
     pub count: u32,
     pub frequency: f32,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct MedalRarities {
     inner: HashMap<u16, MedalRarityEntry, IntHasher>,
 }
