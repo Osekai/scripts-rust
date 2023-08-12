@@ -27,11 +27,8 @@ mod task;
 mod util;
 
 fn main() {
-    if dotenv::dotenv().is_err() {
-        panic!(
-            "Failed to parse .env file. \
-            Be sure there is one in the same folder as this executable."
-        );
+    if let Err(err) = dotenvy::dotenv() {
+        panic!("Failed to prepare .env variables: {err}");
     }
 
     // Needs to happen outside of a runtime because
