@@ -1,6 +1,7 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
+use tokio::task::JoinHandle;
 
 use crate::model::{
     BadgeEntry, BadgeKey, Badges, Finish, MedalRarities, MedalRarityEntry, Progress, RankingUser,
@@ -95,7 +96,8 @@ LIMIT
         Ok(())
     }
 
-    pub fn store_rankings(&self, rankings: RankingsIter) {
+    #[must_use]
+    pub fn store_rankings(&self, rankings: RankingsIter) -> JoinHandle<()> {
         async fn inner(db: Database, rankings: RankingsIter) -> Result<()> {
             let mut tx = db
                 .begin()
@@ -259,10 +261,11 @@ UPDATE
                 Ok(_) => info!("Successfully stored {len} ranking entries"),
                 Err(err) => error!(?err, "Failed to store rankings"),
             }
-        });
+        })
     }
 
-    pub fn store_medals(&self, medals: Box<[ScrapedMedal]>) {
+    #[must_use]
+    pub fn store_medals(&self, medals: Box<[ScrapedMedal]>) -> JoinHandle<()> {
         async fn inner(db: Database, medals: &[ScrapedMedal]) -> Result<()> {
             let mut tx = db
                 .begin()
@@ -329,10 +332,11 @@ UPDATE
                 Ok(_) => info!("Successfully stored {} medals", medals.len()),
                 Err(err) => error!(?err, "Failed to store medals"),
             }
-        });
+        })
     }
 
-    pub fn store_rarities(&self, rarities: MedalRarities) {
+    #[must_use]
+    pub fn store_rarities(&self, rarities: MedalRarities) -> JoinHandle<()> {
         async fn inner(db: Database, rarities: &MedalRarities) -> Result<()> {
             let mut tx = db
                 .begin()
@@ -374,10 +378,11 @@ UPDATE
                 Ok(_) => info!("Successfully stored {} medal rarities", rarities.len()),
                 Err(err) => error!(?err, "Failed to store rarities"),
             }
-        });
+        })
     }
 
-    pub fn store_badges(&self, badges: Badges) {
+    #[must_use]
+    pub fn store_badges(&self, badges: Badges) -> JoinHandle<()> {
         async fn inner(db: Database, badges: &Badges) -> Result<()> {
             let mut tx = db
                 .begin()
@@ -439,6 +444,6 @@ VALUES
                 Ok(_) => info!("Successfully stored {} badges", badges.len()),
                 Err(err) => error!(?err, "Failed to store badges"),
             }
-        });
+        })
     }
 }

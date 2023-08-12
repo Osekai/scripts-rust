@@ -5,7 +5,10 @@ use std::{
 
 use eyre::{Context as _, Report, Result};
 use rosu_v2::Osu;
-use tokio::time::{interval, sleep};
+use tokio::{
+    task::JoinHandle,
+    time::{interval, sleep},
+};
 
 use crate::{
     client::Client,
@@ -99,11 +102,13 @@ impl Context {
     async fn iteration(&self, task: Task, args: &Args) {
         info!("Starting task `{task}`");
 
+        let mut db_handles = Vec::new();
+
         let (users, badges, progress) = self.gather_users_and_badges(task, args).await;
 
         // Store badges if required
         if !badges.is_empty() && task.badges() {
-            self.mysql.store_badges(badges);
+            db_handles.push(self.mysql.store_badges(badges));
         }
 
         // If badges are all that was required then we're already done
@@ -121,21 +126,26 @@ impl Context {
 
                             // If there are new medals, store their rarities
                             if !new_medals.is_empty() {
-                                self.mysql.store_rarities(new_medals);
+                                db_handles.push(self.mysql.store_rarities(new_medals));
                             }
                         }
                         Err(err) => error!(?err, "Failed to fetch medal ids from DB"),
                     };
 
-                    self.handle_rarities_and_ranking(task, users, &medals).await;
+                    self.handle_rarities_and_ranking(task, users, &medals, &mut db_handles)
+                        .await;
 
                     // Store medals if required
                     if task.medals() {
-                        self.mysql.store_medals(medals);
+                        db_handles.push(self.mysql.store_medals(medals));
                     }
                 }
                 Err(err) => error!(?err, "Failed to gather medals"),
             }
+        }
+
+        for handle in db_handles {
+            let _ = handle.await;
         }
 
         // Notify a webhook that we're done storing
@@ -303,6 +313,7 @@ impl Context {
         task: Task,
         users: Vec<OsuUser>,
         medals: &[ScrapedMedal],
+        db_handles: &mut Vec<JoinHandle<()>>,
     ) {
         let rarities = if users.is_empty() {
             return;
@@ -323,12 +334,12 @@ impl Context {
         // Calculate and store user rankings if required
         if task.ranking() {
             let rankings_iter = RankingsIter::new(users, rarities.clone());
-            self.mysql.store_rankings(rankings_iter);
+            db_handles.push(self.mysql.store_rankings(rankings_iter));
         }
 
         // Store rarities if required
         if task.rarity() {
-            self.mysql.store_rarities(rarities);
+            db_handles.push(self.mysql.store_rarities(rarities));
         }
     }
 }
