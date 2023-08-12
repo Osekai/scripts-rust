@@ -2,28 +2,27 @@ use std::{fs, time::Duration};
 
 use ::bytes::Bytes;
 use eyre::{Context as _, Result};
-use http::{header::CONTENT_LENGTH, Response};
+use http::{HeaderValue, Uri};
 use hyper::{
     client::{connect::dns::GaiResolver, Client as HyperClient, HttpConnector},
     header::{CONTENT_TYPE, USER_AGENT},
-    Body, Method, Request,
+    Method, Request,
 };
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use serde::Serialize;
+use serde_json::{Error as JsonError, Serializer as JsonSerializer};
 
 use crate::{
     config::Config,
     model::{Finish, Progress},
 };
 
-use self::{bytes::BodyBytes, multipart::Multipart};
-pub use response::OsekaiResponse;
+use self::bytes::BodyBytes;
 
 mod bytes;
-mod multipart;
-mod response;
 
-static MY_USER_AGENT: &str = env!("CARGO_PKG_NAME");
+static MY_USER_AGENT: HeaderValue = HeaderValue::from_static(env!("CARGO_PKG_NAME"));
+static FORM_URLENCODED: HeaderValue = HeaderValue::from_static("application/x-www-form-urlencoded");
 
 type InnerClient = HyperClient<HttpsConnector<HttpConnector<GaiResolver>>, BodyBytes>;
 
@@ -55,10 +54,10 @@ impl Client {
 
             fs::read("./peppy.html").context("failed to read `./peppy.html`")
         } else {
-            let url = "https://osu.ppy.sh/users/2/osu";
+            let url = Uri::from_static("https://osu.ppy.sh/users/2/osu");
 
             let bytes = self
-                .send_get_request(url)
+                .send_get_request(&url)
                 .await
                 .context("failed to request user webpage")?;
 
@@ -68,29 +67,33 @@ impl Client {
         }
     }
 
-    /// Keep osekai posted on what the current progress is
-    pub async fn upload_progress(&self, progress: &Progress) -> Result<OsekaiResponse> {
-        let url = format!("{base}progression.php", base = Config::get().url_base);
-        let bytes = self.send_post_request_retry(&url, progress).await?;
+    /// Keep a webhook posted on what the current progress is
+    pub async fn notify_webhook_progress(&self, progress: &Progress) -> Result<()> {
+        const CONTENT_PREFIX: &str = "SCRIPTS-RUST Progress Update:\n";
 
-        OsekaiResponse::new(bytes)
+        let content = serialize_webhook_content(CONTENT_PREFIX, progress)
+            .context("failed to serialize progress to json")?;
+
+        self.notify_webhook(content).await
     }
 
-    /// Notify osekai that the upload iteration is finished
-    pub async fn finish_storing(&self, finish: Finish) -> Result<OsekaiResponse> {
-        let url = format!("{base}finish.php", base = Config::get().url_base);
-        let bytes = self.send_post_request_retry(&url, &finish).await?;
+    /// Notify a webhook that the upload iteration is finished
+    pub async fn notify_webhook_finish(&self, finish: &Finish) -> Result<()> {
+        const CONTENT_PREFIX: &str = "scripts-rust upload<br>";
 
-        OsekaiResponse::new(bytes)
+        let content = serialize_webhook_content(CONTENT_PREFIX, finish)
+            .context("failed to serialize finish to json")?;
+
+        self.notify_webhook(content).await
     }
 
-    async fn send_get_request(&self, url: &str) -> Result<Bytes> {
+    async fn send_get_request(&self, url: &Uri) -> Result<Bytes> {
         trace!("Sending GET request to url {url}");
 
         let req = Request::builder()
             .uri(url)
             .method(Method::GET)
-            .header(USER_AGENT, MY_USER_AGENT)
+            .header(USER_AGENT, &MY_USER_AGENT)
             .body(BodyBytes::default())
             .context("failed to build GET request")?;
 
@@ -98,60 +101,8 @@ impl Client {
             .client
             .request(req)
             .await
-            .context("failed to receive GET response")?;
+            .context("failed to send GET request")?;
 
-        Self::error_for_status(response, url).await
-    }
-
-    async fn send_post_request_retry<J>(&self, url: impl AsRef<str>, data: &J) -> Result<Bytes>
-    where
-        J: Serialize,
-    {
-        let url = url.as_ref();
-
-        match self.send_post_request(url, data).await {
-            Ok(bytes) => Ok(bytes),
-            Err(_) => self.send_post_request(url, data).await,
-        }
-    }
-
-    #[cfg_attr(debug_assertions, allow(unused))]
-    async fn send_post_request<J>(&self, url: &str, data: &J) -> Result<Bytes>
-    where
-        J: Serialize,
-    {
-        trace!("Sending POST request to url {url}");
-
-        #[cfg(debug_assertions)]
-        return Ok(Bytes::new());
-
-        let form = Multipart::new()
-            .push_text("key", Config::get().tokens.post.as_ref())
-            .push_json("data", data)
-            .context("failed to push json onto multipart")?;
-
-        let content_type = form.content_type();
-        let form = BodyBytes::from(form);
-
-        let req = Request::builder()
-            .method(Method::POST)
-            .uri(url)
-            .header(USER_AGENT, MY_USER_AGENT)
-            .header(CONTENT_TYPE, content_type)
-            .header(CONTENT_LENGTH, form.len())
-            .body(form)
-            .context("failed to build POST request")?;
-
-        let response = self
-            .client
-            .request(req)
-            .await
-            .context("failed to receive POST response")?;
-
-        Self::error_for_status(response, url).await
-    }
-
-    async fn error_for_status(response: Response<Body>, url: &str) -> Result<Bytes> {
         let status = response.status();
 
         ensure!(
@@ -163,4 +114,54 @@ impl Client {
             .await
             .context("failed to extract response bytes")
     }
+
+    async fn notify_webhook(&self, content: String) -> Result<()> {
+        trace!("Sending POST request for webhook");
+
+        #[derive(Serialize)]
+        struct UrlEncode {
+            content: String,
+        }
+
+        let encode = UrlEncode { content };
+
+        let encoded = serde_urlencoded::to_string(&encode)
+            .context("failed to urlencode webhook notification")?;
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri(&Config::get().webhook_url)
+            .header(USER_AGENT, &MY_USER_AGENT)
+            .header(CONTENT_TYPE, &FORM_URLENCODED)
+            .body(BodyBytes::from(encoded.into_bytes()))
+            .context("failed to build POST request")?;
+
+        let response = self
+            .client
+            .request(req)
+            .await
+            .context("failed to send POST request")?;
+
+        let status = response.status();
+
+        ensure!(
+            status.is_success(),
+            "failed with status code {status} when notifying webhook"
+        );
+
+        Ok(())
+    }
+}
+
+fn serialize_webhook_content<T: Serialize>(prefix: &str, data: &T) -> Result<String, JsonError> {
+    let mut content = String::with_capacity(128);
+    content.push_str(prefix);
+
+    // SAFETY: serde_json does not emit invalid UTF-8
+    let content_bytes = unsafe { content.as_mut_vec() };
+
+    let mut serializer = JsonSerializer::new(content_bytes);
+    data.serialize(&mut serializer)?;
+
+    Ok(content)
 }

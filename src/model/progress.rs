@@ -4,11 +4,11 @@ use crate::{task::Task, util::Eta};
 
 #[derive(Serialize)]
 pub struct Progress {
-    current: usize,
-    total: usize,
-    eta_seconds: Option<u64>,
-    task: Task,
-    users_per_sec: f32,
+    pub current: usize,
+    pub total: usize,
+    pub eta_seconds: Option<u64>,
+    pub task: Task,
+    pub users_per_sec: f32,
 }
 
 impl Progress {

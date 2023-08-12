@@ -3,12 +3,99 @@ use std::ops::DerefMut;
 use eyre::{Context as _, Result};
 
 use crate::model::{
-    BadgeEntry, BadgeKey, Badges, MedalRarities, MedalRarityEntry, RankingUser, ScrapedMedal,
+    BadgeEntry, BadgeKey, Badges, Finish, MedalRarities, MedalRarityEntry, Progress, RankingUser,
+    ScrapedMedal,
 };
 
 use super::Database;
 
 impl Database {
+    pub async fn store_progress(&self, progress: &Progress) -> Result<()> {
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to update RankingLoopInfo")?;
+
+        let Progress {
+            current,
+            total,
+            eta_seconds,
+            task,
+            users_per_sec: _,
+        } = progress;
+
+        let query = sqlx::query!(
+            r#"
+UPDATE 
+  RankingLoopInfo 
+SET 
+  CurrentLoop = ?, 
+  CurrentCount = ?, 
+  TotalCount = ?, 
+  EtaSeconds = ? 
+LIMIT 
+  1"#,
+            task.to_string(),
+            *current as i32,
+            *total as i32,
+            eta_seconds,
+        );
+
+        query
+            .execute(conn.deref_mut())
+            .await
+            .context("failed to execute RankingLoopInfo query")?;
+
+        Ok(())
+    }
+
+    pub async fn store_finish(&self, finish: &Finish) -> Result<()> {
+        let mut tx = self
+            .begin()
+            .await
+            .context("failed to begin transaction for RankingLoopHistory")?;
+
+        let Finish {
+            requested_users,
+            task,
+        } = finish;
+
+        let insert_query = sqlx::query!(
+            r#"
+INSERT INTO RankingLoopHistory (Time, LoopType, Amount) 
+VALUES 
+  (CURRENT_TIMESTAMP, ?, ?)"#,
+            task.to_string(),
+            *requested_users as i32
+        );
+
+        insert_query
+            .execute(tx.deref_mut())
+            .await
+            .context("failed to execute RankingLoopHistory query")?;
+
+        let update_query = sqlx::query!(
+            r#"
+UPDATE 
+  RankingLoopInfo 
+SET 
+  CurrentLoop = "Complete" 
+LIMIT 
+  1"#
+        );
+
+        update_query
+            .execute(tx.deref_mut())
+            .await
+            .context("failed to execute RankingLoopInfo query")?;
+
+        tx.commit()
+            .await
+            .context("failed to commit finish transaction")?;
+
+        Ok(())
+    }
+
     pub async fn store_rankings(&self, rankings: &[RankingUser]) -> Result<()> {
         let mut tx = self
             .begin()
