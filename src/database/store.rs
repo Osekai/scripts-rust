@@ -21,7 +21,6 @@ impl Database {
             total,
             eta_seconds,
             task,
-            users_per_sec: _,
         } = progress;
 
         let query = sqlx::query!(

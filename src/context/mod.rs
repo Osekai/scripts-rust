@@ -240,8 +240,6 @@ impl Context {
             }
         }
 
-        let mut remaining_users = len;
-
         // Request osu! user data for all users for all modes.
         // The core loop and very expensive.
         for (user_id, i) in user_ids.into_iter().zip(1..) {
@@ -272,7 +270,6 @@ impl Context {
 
                 if args.progress {
                     progress.update(i, &eta);
-                    remaining_users = len - i;
 
                     match self.handle_progress(&progress).await {
                         Ok(_) => info!("Successfully handled progress"),
@@ -285,7 +282,7 @@ impl Context {
         info!("Finished requesting {len} users");
 
         if args.progress {
-            progress.finish(remaining_users, &eta);
+            progress.finish();
 
             match self.handle_progress(&progress).await {
                 Ok(_) => info!("Successfully handled final progress"),
