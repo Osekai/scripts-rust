@@ -80,9 +80,7 @@ impl Context {
                         user_ids.extend(rankings.ranking.into_iter().map(|user| user.user_id))
                     }
                     Err(err) => {
-                        let wrap =
-                            format!("Failed to retrieve leaderboard page {page} for {mode:?}");
-                        error!("{:?}", Report::from(err).wrap_err(wrap));
+                        error!(?mode, err = ?Report::new(err), "Failed to retrieve leaderboard page {page}")
                     }
                 }
             }

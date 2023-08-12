@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use rosu_v2::prelude::{Badge, MedalCompact, User, UserStatistics};
 
 use super::MedalRarities;
@@ -11,7 +13,7 @@ pub enum OsuUser {
 pub struct ModeStats {
     pub acc: f32,
     pub level: f32,
-    pub global_rank: Option<u32>,
+    pub global_rank: Option<NonZeroU32>,
     pub playcount: u32,
     pub pp: f32,
 }
@@ -23,7 +25,7 @@ impl From<Option<&UserStatistics>> for ModeStats {
             Some(stats) => Self {
                 acc: stats.accuracy,
                 level: stats.level.float(),
-                global_rank: stats.global_rank,
+                global_rank: stats.global_rank.and_then(NonZeroU32::new),
                 playcount: stats.playcount,
                 pp: stats.pp,
             },
@@ -95,33 +97,5 @@ impl UserFull {
             .flat_map(|medal| Some((medal, rarities.get(&(medal.medal_id as u16))?.count)))
             .min_by_key(|(_, count)| *count)
             .map(|(medal, _)| medal)
-    }
-
-    /// Sum up [`ModeStats`] values of each mode
-    pub fn total<F>(&self, stat: F) -> f32
-    where
-        F: FnMut(&ModeStats) -> f32,
-    {
-        self.inner.iter().map(stat).sum()
-    }
-
-    /// Calculate the standard deviation for a given value based on [`ModeStats`]
-    pub fn std_dev<F>(&self, stat: F) -> f32
-    where
-        F: Copy + FnMut(&ModeStats) -> f32,
-    {
-        let total = self.total(stat);
-        let mean = total / 4.0;
-
-        let variance: f32 = self
-            .inner
-            .iter()
-            .map(stat)
-            .map(|value| (value - mean) * (value - mean))
-            .sum();
-
-        let std_dev = (variance / 3.0).sqrt();
-
-        (total - 2.0 * std_dev).max(0.0)
     }
 }

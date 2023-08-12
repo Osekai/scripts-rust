@@ -11,7 +11,7 @@ use crate::{
     client::Client,
     config::Config,
     database::Database,
-    model::{Badges, MedalRarities, OsuUser, Progress, RankingUser, ScrapedMedal},
+    model::{Badges, MedalRarities, OsuUser, Progress, RankingsIter, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -103,13 +103,8 @@ impl Context {
 
         // Store badges if required
         if !badges.is_empty() && task.badges() {
-            match self.mysql.store_badges(&badges).await {
-                Ok(_) => info!("Successfully stored {} badges", badges.len()),
-                Err(err) => error!(?err, "Failed to store badges"),
-            }
+            self.mysql.store_badges(badges);
         }
-
-        drop(badges);
 
         // If badges are all that was required then we're already done
         if task != Task::BADGES {
@@ -126,31 +121,20 @@ impl Context {
 
                             // If there are new medals, store their rarities
                             if !new_medals.is_empty() {
-                                match self.mysql.store_rarities(&new_medals).await {
-                                    Ok(_) => info!(
-                                        "Successfully stored rarities for {} new medals",
-                                        new_medals.len()
-                                    ),
-                                    Err(err) => {
-                                        error!(?err, "Failed to store rarities for new medals")
-                                    }
-                                }
+                                self.mysql.store_rarities(new_medals);
                             }
                         }
                         Err(err) => error!(?err, "Failed to fetch medal ids from DB"),
                     };
 
+                    self.handle_rarities_and_ranking(task, users, &medals).await;
+
                     // Store medals if required
                     if task.medals() {
-                        match self.mysql.store_medals(&medals).await {
-                            Ok(_) => info!("Successfully stored {} medals", medals.len()),
-                            Err(err) => error!(?err, "Failed to store medals"),
-                        }
+                        self.mysql.store_medals(medals);
                     }
-
-                    self.handle_rarities_and_ranking(task, users, &medals).await;
                 }
-                Err(err) => error!("{:?}", err.wrap_err("Failed to gather medals")),
+                Err(err) => error!(?err, "Failed to gather medals"),
             }
         }
 
@@ -240,16 +224,13 @@ impl Context {
             }
         }
 
-        let mut remaining_users = len;
-
         // Request osu! user data for all users for all modes.
         // The core loop and very expensive.
         for (user_id, i) in user_ids.into_iter().zip(1..) {
             let mut user = match self.request_osu_user(user_id).await {
                 Ok(user) => user,
                 Err(err) => {
-                    let wrap = format!("Failed to request user {user_id} from osu!api");
-                    error!("{:?}", Report::from(err).wrap_err(wrap));
+                    error!(err = ?Report::new(err), "Failed to request user {user_id} from osu!api");
 
                     continue;
                 }
@@ -273,7 +254,6 @@ impl Context {
 
                 if args.progress {
                     progress.update(i, &eta);
-                    remaining_users = len - i;
 
                     match self.handle_progress(&progress).await {
                         Ok(_) => info!("Successfully handled progress"),
@@ -286,7 +266,7 @@ impl Context {
         info!("Finished requesting {len} users");
 
         if args.progress {
-            progress.finish(remaining_users, &eta);
+            progress.finish();
 
             match self.handle_progress(&progress).await {
                 Ok(_) => info!("Successfully handled final progress"),
@@ -319,7 +299,7 @@ impl Context {
     async fn handle_rarities_and_ranking(
         &self,
         task: Task,
-        #[allow(unused_mut)] mut users: Vec<OsuUser>,
+        users: Vec<OsuUser>,
         medals: &[ScrapedMedal],
     ) {
         let rarities = if users.is_empty() {
@@ -338,25 +318,15 @@ impl Context {
             return;
         };
 
-        // Store rarities if required
-        if task.rarity() {
-            match self.mysql.store_rarities(&rarities).await {
-                Ok(_) => info!("Successfully stored {} medal rarities", rarities.len()),
-                Err(err) => error!(?err, "Failed to store medal rarities"),
-            }
-        }
-
         // Calculate and store user rankings if required
         if task.ranking() {
-            let ranking: Vec<_> = users
-                .into_iter()
-                .map(|user| RankingUser::new(user, &rarities))
-                .collect();
+            let rankings_iter = RankingsIter::new(users, rarities.clone());
+            self.mysql.store_rankings(rankings_iter);
+        }
 
-            match self.mysql.store_rankings(&ranking).await {
-                Ok(_) => info!("Successfully stored {} ranking entries", ranking.len()),
-                Err(err) => error!(?err, "Failed to store rankings"),
-            }
+        // Store rarities if required
+        if task.rarity() {
+            self.mysql.store_rarities(rarities);
         }
     }
 }

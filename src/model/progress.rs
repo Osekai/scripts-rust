@@ -8,7 +8,6 @@ pub struct Progress {
     pub total: usize,
     pub eta_seconds: Option<u64>,
     pub task: Task,
-    pub users_per_sec: f32,
 }
 
 impl Progress {
@@ -20,7 +19,6 @@ impl Progress {
             total,
             current: 0,
             eta_seconds: None,
-            users_per_sec: 0.0,
         }
     }
 
@@ -29,16 +27,11 @@ impl Progress {
 
         let remaining = eta.estimate(self.total - current);
         self.eta_seconds = remaining.as_seconds();
-
-        let elapsed = eta.get(Self::INTERVAL).elapsed();
-        self.users_per_sec = (1000 * Self::INTERVAL) as f32 / elapsed.as_millis() as f32;
     }
 
-    pub fn finish(&mut self, remaining: usize, eta: &Eta) {
+    pub fn finish(&mut self) {
         self.current = self.total;
         self.eta_seconds = Some(0);
-        let elapsed = eta.get(remaining).elapsed();
-        self.users_per_sec = (1000 * remaining) as f32 / elapsed.as_millis() as f32;
     }
 }
 

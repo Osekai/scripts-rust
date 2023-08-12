@@ -9,10 +9,6 @@ use std::{
 };
 
 use rosu_v2::prelude::Badge;
-use serde::{
-    de::{Deserializer, Error as SerdeError, Unexpected},
-    Deserialize,
-};
 use time::OffsetDateTime;
 
 use crate::util::IntHasher;
@@ -114,39 +110,11 @@ impl Display for BadgeOwners {
     }
 }
 
-#[derive(Deserialize)]
 pub struct SlimBadge {
-    #[serde(deserialize_with = "deserialize_id")]
     pub id: u32,
     pub description: Box<str>,
-    #[serde(deserialize_with = "deserialize_users")]
     pub users: Box<[u32]>,
     pub image_url: Box<str>,
-}
-
-fn deserialize_id<'de, D: Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
-    let s = <&'de str as Deserialize>::deserialize(d)?;
-
-    s.parse()
-        .map_err(|_| SerdeError::invalid_value(Unexpected::Str(s), &"a u32"))
-}
-
-fn deserialize_users<'de, D: Deserializer<'de>>(d: D) -> Result<Box<[u32]>, D::Error> {
-    let s = <&'de str as Deserialize>::deserialize(d)?;
-
-    if s.is_empty() {
-        return Ok(Box::default());
-    }
-
-    s[1..s.len() - 1]
-        .split(',')
-        .map(str::trim)
-        .map(str::parse)
-        .collect::<Result<_, _>>()
-        .map(Vec::into_boxed_slice)
-        .map_err(|_| {
-            SerdeError::invalid_value(Unexpected::Str(s), &"a stringified list of integers")
-        })
 }
 
 impl PartialEq for SlimBadge {

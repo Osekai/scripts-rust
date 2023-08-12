@@ -26,10 +26,6 @@ impl Eta {
         TimeEstimate(self.estimate_(remaining))
     }
 
-    pub fn get(&self, idx: usize) -> Instant {
-        self.queue[(self.end + 1 + idx) % BACKLOG_LEN]
-    }
-
     fn estimate_(&self, remaining: usize) -> Option<Duration> {
         let last = *self.queue.get(self.end).filter(|_| self.len > 20)?;
 
