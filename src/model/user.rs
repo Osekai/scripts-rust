@@ -25,7 +25,7 @@ impl From<Option<&UserStatistics>> for ModeStats {
             Some(stats) => Self {
                 acc: stats.accuracy,
                 level: stats.level.float(),
-                global_rank: stats.global_rank.map(NonZeroU32::new).flatten(),
+                global_rank: stats.global_rank.and_then(NonZeroU32::new),
                 playcount: stats.playcount,
                 pp: stats.pp,
             },
