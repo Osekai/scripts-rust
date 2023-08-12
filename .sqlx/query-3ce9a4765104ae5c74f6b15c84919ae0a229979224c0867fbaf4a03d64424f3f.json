@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nINSERT INTO RankingLoopHistory (Time, LoopType, Amount) \nVALUES \n  (CURRENT_TIMESTAMP, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "3ce9a4765104ae5c74f6b15c84919ae0a229979224c0867fbaf4a03d64424f3f"
+}

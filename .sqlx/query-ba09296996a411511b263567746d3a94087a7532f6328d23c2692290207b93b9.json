@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nINSERT INTO Badges (\n  id, name, image_url, description, awarded_at, users\n) \nVALUES \n  (?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "ba09296996a411511b263567746d3a94087a7532f6328d23c2692290207b93b9"
+}

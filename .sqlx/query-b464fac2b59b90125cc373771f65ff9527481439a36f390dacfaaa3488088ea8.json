@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\nSELECT \n  id \nFROM \n  Ranking",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 11
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b464fac2b59b90125cc373771f65ff9527481439a36f390dacfaaa3488088ea8"
+}

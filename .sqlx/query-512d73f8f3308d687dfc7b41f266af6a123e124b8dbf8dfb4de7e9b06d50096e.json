@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nUPDATE \n  RankingLoopInfo \nSET \n  CurrentLoop = ?, \n  CurrentCount = ?, \n  TotalCount = ?, \n  EtaSeconds = ? \nLIMIT \n  1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "512d73f8f3308d687dfc7b41f266af6a123e124b8dbf8dfb4de7e9b06d50096e"
+}

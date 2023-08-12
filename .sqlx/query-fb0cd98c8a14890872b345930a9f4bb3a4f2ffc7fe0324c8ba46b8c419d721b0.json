@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nINSERT INTO MedalRarity (id, frequency, count) \nVALUES \n  (?, ?, ?) ON DUPLICATE KEY \nUPDATE \n  id = VALUES(id), \n  frequency = VALUES(frequency), \n  count = VALUES(count)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "fb0cd98c8a14890872b345930a9f4bb3a4f2ffc7fe0324c8ba46b8c419d721b0"
+}

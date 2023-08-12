@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM Badges",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "5abf18d522021f6471dd4a47136bf86ea0352c5a68f7a7290b9bbe567df39e39"
+}
