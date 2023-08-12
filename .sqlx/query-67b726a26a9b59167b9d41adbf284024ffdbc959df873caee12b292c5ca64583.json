@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nINSERT INTO Medals (\n  medalid, name, link, description, \n  restriction, `grouping`, instructions, \n  ordering\n) \nVALUES \n  (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY \nUPDATE \n  medalid = VALUES(medalid), \n  name = VALUES(name), \n  link = VALUES(link), \n  description = VALUES(description), \n  restriction = VALUES(restriction), \n  `grouping` = VALUES(`grouping`), \n  ordering = VALUES(ordering), \n  instructions = VALUES(instructions)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "67b726a26a9b59167b9d41adbf284024ffdbc959df873caee12b292c5ca64583"
+}
