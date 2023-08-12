@@ -299,7 +299,7 @@ impl Context {
     async fn handle_rarities_and_ranking(
         &self,
         task: Task,
-        #[allow(unused_mut)] mut users: Vec<OsuUser>,
+        users: Vec<OsuUser>,
         medals: &[ScrapedMedal],
     ) {
         let rarities = if users.is_empty() {
