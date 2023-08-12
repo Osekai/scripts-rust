@@ -15,7 +15,6 @@ pub struct Config {
 }
 
 pub struct Tokens {
-    pub post: Box<str>,
     pub osu_client_id: u64,
     pub osu_client_secret: Box<str>,
 }
@@ -55,7 +54,6 @@ pub fn init(args: &mut Args) -> Result<()> {
 
     let config = Config {
         tokens: Tokens {
-            post: env_var("POST_KEY")?,
             osu_client_id: env_var("OSU_CLIENT_ID")?,
             osu_client_secret: env_var("OSU_CLIENT_SECRET")?,
         },
