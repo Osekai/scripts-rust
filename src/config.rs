@@ -1,12 +1,11 @@
-use std::env;
+use std::{env, sync::OnceLock};
 
 use eyre::{Context as _, Result};
 use http::Uri;
-use once_cell::sync::OnceCell;
 
 use crate::{schedule::Schedule, util::Args};
 
-static CONFIG: OnceCell<Config> = OnceCell::new();
+static CONFIG: OnceLock<Config> = OnceLock::new();
 
 pub struct Config {
     pub tokens: Tokens,
@@ -23,7 +22,7 @@ pub struct Tokens {
 
 impl Config {
     pub fn get() -> &'static Self {
-        unsafe { CONFIG.get_unchecked() }
+        CONFIG.get().expect("CONFIG not yet initialized")
     }
 }
 

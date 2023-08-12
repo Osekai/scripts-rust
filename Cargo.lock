@@ -1308,7 +1308,6 @@ dependencies = [
  "http",
  "hyper",
  "hyper-rustls 0.24.1",
- "once_cell",
  "rosu-v2",
  "scraper",
  "self_update",
