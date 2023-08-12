@@ -17,5 +17,6 @@ jobs:
         uses: rust-build/rust-build.action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SQLX_OFFLINE: true
         with:
           RUSTTARGET: ${{ matrix.target }}
