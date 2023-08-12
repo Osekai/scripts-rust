@@ -203,9 +203,11 @@ impl Context {
         };
 
         if args.debug {
-            let user_id = user_ids.iter().next().copied().unwrap_or(2211396);
-            user_ids.clear();
-            user_ids.insert(user_id);
+            user_ids = user_ids.into_iter().take(10).collect();
+
+            if user_ids.is_empty() {
+                user_ids.insert(2211396);
+            }
         }
 
         let len = user_ids.len();
