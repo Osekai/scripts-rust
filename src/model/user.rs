@@ -36,7 +36,6 @@ impl From<Option<&UserStatistics>> for ModeStats {
 
 pub struct UserFull {
     pub inner: [ModeStats; 4],
-    pub avatar_url: Box<str>,
     pub badges: Box<[Badge]>,
     pub country_code: Box<str>,
     pub followers: u32,
@@ -52,7 +51,6 @@ pub struct UserFull {
 
 impl UserFull {
     pub fn new(std: User, tko: User, ctb: User, mna: User) -> Self {
-        let avatar_url = std.avatar_url.into_boxed_str();
         let badges = std.badges.unwrap_or_default().into_boxed_slice();
         let country_code = std.country_code.into_string().into_boxed_str();
         let followers = std.follower_count.unwrap_or(0);
@@ -76,7 +74,6 @@ impl UserFull {
 
         Self {
             inner: [std.into(), tko.into(), ctb.into(), mna.into()],
-            avatar_url,
             badges,
             country_code,
             followers,

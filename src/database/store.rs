@@ -124,7 +124,6 @@ LIMIT
                     followers,
                     subscribers,
                     replays_watched,
-                    avatar_url,
                     kudosu,
                     restricted,
                     std,
@@ -148,17 +147,17 @@ LIMIT
                 let query = sqlx::query!(
                     r#"
 INSERT INTO Ranking (
-  id, name, total_pp, stdev_pp, standard_pp, taiko_pp, 
-  ctb_pp, mania_pp, medal_count, rarest_medal, 
-  country_code, standard_global, taiko_global, 
-  ctb_global, mania_global, badge_count, 
-  ranked_maps, loved_maps, subscribers, 
-  followers, replays_watched, avatar_url, 
+  id, name, total_pp, stdev_pp, standard_pp, 
+  taiko_pp, ctb_pp, mania_pp, medal_count, 
+  rarest_medal, country_code, standard_global, 
+  taiko_global, ctb_global, mania_global, 
+  badge_count, ranked_maps, loved_maps, 
+  subscribers, followers, replays_watched, 
   rarest_medal_achieved, restricted, 
   stdev_acc, standard_acc, taiko_acc, 
   ctb_acc, mania_acc, stdev_level, 
   standard_level, taiko_level, ctb_level, 
-  mania_level, kudosu
+  mania_level, kudosu, avatar_url
 ) 
 VALUES 
   (
@@ -188,7 +187,6 @@ UPDATE
   subscribers = VALUES(subscribers), 
   followers = VALUES(followers), 
   replays_watched = VALUES(replays_watched), 
-  avatar_url = VALUES(avatar_url), 
   rarest_medal_achieved = VALUES(rarest_medal_achieved), 
   restricted = VALUES(restricted), 
   stdev_acc = VALUES(stdev_acc), 
@@ -223,7 +221,6 @@ UPDATE
                     subscribers,
                     followers,
                     replays_watched,
-                    avatar_url.as_ref(),
                     rarest_medal_achieved,
                     restricted as u8,
                     stdev_acc,
@@ -236,7 +233,8 @@ UPDATE
                     tko.level,
                     ctb.level,
                     mna.level,
-                    kudosu
+                    kudosu,
+                    0_i32, // the avatar_url column is no longer needed
                 );
 
                 query

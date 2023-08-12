@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nINSERT INTO Ranking (\n  id, name, total_pp, stdev_pp, standard_pp, \n  taiko_pp, ctb_pp, mania_pp, medal_count, \n  rarest_medal, country_code, standard_global, \n  taiko_global, ctb_global, mania_global, \n  badge_count, ranked_maps, loved_maps, \n  subscribers, followers, replays_watched, \n  rarest_medal_achieved, restricted, \n  stdev_acc, standard_acc, taiko_acc, \n  ctb_acc, mania_acc, stdev_level, \n  standard_level, taiko_level, ctb_level, \n  mania_level, kudosu\n) \nVALUES \n  (\n    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \n    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \n    ?, ?, ?\n  ) ON DUPLICATE KEY \nUPDATE \n  id = VALUES(id), \n  name = VALUES(name), \n  total_pp = VALUES(total_pp), \n  stdev_pp = VALUES(stdev_pp), \n  standard_pp = VALUES(standard_pp), \n  taiko_pp = VALUES(taiko_pp), \n  ctb_pp = VALUES(ctb_pp), \n  mania_pp = VALUES(mania_pp), \n  medal_count = VALUES(medal_count), \n  rarest_medal = VALUES(rarest_medal), \n  country_code = VALUES(country_code), \n  standard_global = VALUES(standard_global), \n  taiko_global = VALUES(taiko_global), \n  ctb_global = VALUES(ctb_global), \n  mania_global = VALUES(mania_global), \n  badge_count = VALUES(badge_count), \n  ranked_maps = VALUES(ranked_maps), \n  loved_maps = VALUES(loved_maps), \n  subscribers = VALUES(subscribers), \n  followers = VALUES(followers), \n  replays_watched = VALUES(replays_watched), \n  rarest_medal_achieved = VALUES(rarest_medal_achieved), \n  restricted = VALUES(restricted), \n  stdev_acc = VALUES(stdev_acc), \n  standard_acc = VALUES(standard_acc), \n  taiko_acc = VALUES(taiko_acc), \n  ctb_acc = VALUES(ctb_acc), \n  mania_acc = VALUES(mania_acc), \n  stdev_level = VALUES(stdev_level), \n  standard_level = VALUES(standard_level), \n  taiko_level = VALUES(taiko_level), \n  ctb_level = VALUES(ctb_level), \n  mania_level = VALUES(mania_level), \n  kudosu = VALUES(kudosu)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 34
+    },
+    "nullable": []
+  },
+  "hash": "fb30e4a87e7782b5cb9dbd5aa0fc3dd314be032c0ce2bedfac7ba1c35c85680d"
+}
