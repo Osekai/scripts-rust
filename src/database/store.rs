@@ -306,8 +306,8 @@ UPDATE
                     description.as_ref(),
                     mode.as_deref().unwrap_or("NULL"),
                     grouping.as_ref(),
-                    ordering,
                     instructions.as_deref(),
+                    ordering,
                 );
 
                 query
