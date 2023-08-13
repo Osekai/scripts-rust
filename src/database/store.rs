@@ -447,7 +447,6 @@ VALUES
 
         tokio::spawn(async move {
             let res = inner(db, &badges).await;
-            println!("hello?");
             let _entered = info_span!("store_badges").entered();
 
             match res {
