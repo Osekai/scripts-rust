@@ -254,8 +254,10 @@ UPDATE
 
         tokio::spawn(async move {
             let len = rankings.len();
+            let res = inner(db, rankings).await;
+            let _entered = info_span!("store_rankings").entered();
 
-            match inner(db, rankings).await {
+            match res {
                 Ok(_) => info!("Successfully stored {len} ranking entries"),
                 Err(err) => error!(?err, "Failed to store rankings"),
             }
@@ -326,7 +328,10 @@ UPDATE
         let db = self.to_owned();
 
         tokio::spawn(async move {
-            match inner(db, &medals).await {
+            let res = inner(db, &medals).await;
+            let _entered = info_span!("store_medals").entered();
+
+            match res {
                 Ok(_) => info!("Successfully stored {} medals", medals.len()),
                 Err(err) => error!(?err, "Failed to store medals"),
             }
@@ -372,7 +377,10 @@ UPDATE
         let db = self.to_owned();
 
         tokio::spawn(async move {
-            match inner(db, &rarities).await {
+            let res = inner(db, &rarities).await;
+            let _entered = info_span!("store_rarities").entered();
+
+            match res {
                 Ok(_) => info!("Successfully stored {} medal rarities", rarities.len()),
                 Err(err) => error!(?err, "Failed to store rarities"),
             }
@@ -438,7 +446,11 @@ VALUES
         let db = self.to_owned();
 
         tokio::spawn(async move {
-            match inner(db, &badges).await {
+            let res = inner(db, &badges).await;
+            println!("hello?");
+            let _entered = info_span!("store_badges").entered();
+
+            match res {
                 Ok(_) => info!("Successfully stored {} badges", badges.len()),
                 Err(err) => error!(?err, "Failed to store badges"),
             }

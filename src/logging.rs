@@ -15,20 +15,11 @@ use tracing_subscriber::{
     layer::SubscriberExt,
     registry::LookupSpan,
     util::SubscriberInitExt,
-    EnvFilter, Layer as _,
+    EnvFilter, Layer as _, Registry,
 };
 
 pub fn init(quiet: bool) -> WorkerGuard {
     let formatter = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-
-    let stdout_layer = Layer::default().event_format(StdoutEventFormat::new(formatter));
-
-    let file_appender = rolling::daily("./logs", "osekai-scripts.log");
-    let (file_writer, guard) = NonBlocking::new(file_appender);
-
-    let file_layer = Layer::default()
-        .event_format(FileEventFormat::new(formatter))
-        .with_writer(file_writer);
 
     let stdout_filter = if quiet {
         EnvFilter::default()
@@ -36,14 +27,24 @@ pub fn init(quiet: bool) -> WorkerGuard {
         "osekai_scripts=info,error".parse().unwrap()
     };
 
-    let file_filter = match EnvFilter::try_from_default_env() {
-        Ok(filter) => filter,
-        Err(_) => "osekai_scripts=debug,info".parse().unwrap(),
-    };
+    let stdout_layer = Layer::new()
+        .event_format(StdoutEventFormat::new(formatter))
+        .with_filter(stdout_filter);
 
-    tracing_subscriber::registry()
-        .with(stdout_layer.with_filter(stdout_filter))
-        .with(file_layer.with_filter(file_filter))
+    let file_appender = rolling::daily("./logs", "osekai-scripts.log");
+    let (file_writer, guard) = NonBlocking::new(file_appender);
+
+    let file_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| "osekai_scripts=debug,info".parse().unwrap());
+
+    let file_layer = Layer::new()
+        .event_format(FileEventFormat::new(formatter))
+        .with_writer(file_writer)
+        .with_filter(file_filter);
+
+    Registry::default()
+        .with(stdout_layer)
+        .with(file_layer)
         .init();
 
     guard
