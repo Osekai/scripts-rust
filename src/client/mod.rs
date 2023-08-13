@@ -129,7 +129,7 @@ impl Client {
             .context("failed to urlencode webhook notification")?;
 
         let req = Request::builder()
-            .method(Method::GET)
+            .method(Method::POST)
             .uri(&Config::get().webhook_url)
             .header(USER_AGENT, &MY_USER_AGENT)
             .header(CONTENT_TYPE, &FORM_URLENCODED)
