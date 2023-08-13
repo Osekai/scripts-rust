@@ -1257,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "osekai-scripts"
-version = "1.0.15"
+version = "2.0.0-rc.0"
 dependencies = [
  "bytes",
  "clap",
