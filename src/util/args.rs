@@ -1,8 +1,8 @@
 use std::{collections::HashSet, ops::BitOr};
 
 use clap::{Parser, Subcommand};
-use eyre::{Result, WrapErr};
-use self_update::{backends::github::Update, Status};
+use eyre::Result;
+use self_update::Status;
 
 use crate::task::Task;
 
@@ -91,17 +91,10 @@ enum ArgCommand {
     Update,
 }
 
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 fn update() -> Result<Status> {
-    #[cfg(target_os = "windows")]
-    let target = "x86_64-pc-windows-gnu";
-
-    #[cfg(target_os = "linux")]
-    let target = "x86_64-unknown-linux-musl";
-
-    #[cfg(target_os = "macos")]
-    let target = "stable-aarch64-apple-darwin";
-
-    Update::configure()
+	use eyre::WrapErr;
+    self_update::backends::github::Update::configure()
         .repo_owner("Osekai")
         .repo_name("scripts-rust")
         .bin_name("osekai-scripts")
@@ -114,6 +107,11 @@ fn update() -> Result<Status> {
         .wrap_err("Failed to build update")?
         .update()
         .wrap_err("Failed to apply update")
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+fn update() -> Result<Status> {
+    panic!("Updating is currently only supported on Windows and Linux.")
 }
 
 static DESCRIPTION: &str = r#"
