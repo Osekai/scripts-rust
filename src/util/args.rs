@@ -98,6 +98,9 @@ fn update() -> Result<Status> {
     #[cfg(target_os = "linux")]
     let target = "x86_64-unknown-linux-musl";
 
+    #[cfg(target_os = "macos")]
+    let target = "stable-aarch64-apple-darwin";
+
     Update::configure()
         .repo_owner("Osekai")
         .repo_name("scripts-rust")
