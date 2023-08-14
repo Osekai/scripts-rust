@@ -20,3 +20,4 @@ jobs:
           SQLX_OFFLINE: true
         with:
           RUSTTARGET: ${{ matrix.target }}
+          TOOLCHAIN_VERSION: stable
