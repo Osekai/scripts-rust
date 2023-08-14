@@ -93,7 +93,14 @@ enum ArgCommand {
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 fn update() -> Result<Status> {
-	use eyre::WrapErr;
+    use eyre::WrapErr;
+
+    #[cfg(target_os = "windows")]
+    let target = "x86_64-pc-windows-gnu";
+
+    #[cfg(target_os = "linux")]
+    let target = "x86_64-unknown-linux-musl";
+
     self_update::backends::github::Update::configure()
         .repo_owner("Osekai")
         .repo_name("scripts-rust")
