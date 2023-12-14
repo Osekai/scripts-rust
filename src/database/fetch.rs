@@ -75,10 +75,9 @@ FROM
 SELECT 
   id, 
   description, 
-  users, 
-  image_url 
+  image 
 FROM 
-  Badges"#
+  badges"#
         );
 
         let mut badges: Vec<_> = query
@@ -86,22 +85,10 @@ FROM
             .map(|res| {
                 let row = res?;
 
-                let users = row
-                    .users
-                    .strip_prefix('[')
-                    .and_then(|suffix| suffix.strip_suffix(']'))
-                    .ok_or(Report::msg("expected square brackets in users string"))?
-                    .split(',')
-                    .map(str::trim)
-                    .map(str::parse)
-                    .collect::<Result<Box<[_]>, _>>()
-                    .map_err(|_| eyre!("failed to parse id in users string"))?;
-
                 Ok::<_, Report>(SlimBadge {
                     id: row.id as u32,
                     description: row.description.into_boxed_str(),
-                    users,
-                    image_url: row.image_url.into_boxed_str(),
+                    image_url: row.image.into_boxed_str(),
                 })
             })
             .try_collect()

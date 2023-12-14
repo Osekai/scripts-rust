@@ -4,8 +4,8 @@ use eyre::{Context as _, Result};
 use tokio::task::JoinHandle;
 
 use crate::model::{
-    BadgeEntry, BadgeKey, Badges, Finish, MedalRarities, MedalRarityEntry, Progress, RankingUser,
-    RankingsIter, ScrapedMedal,
+    BadgeAwards, BadgeEntry, BadgeKey, Badges, Finish, MedalRarities, MedalRarityEntry, Progress,
+    RankingUser, RankingsIter, ScrapedMedal,
 };
 
 use super::Database;
@@ -388,27 +388,73 @@ UPDATE
     }
 
     #[must_use]
+    pub fn store_badge_awards(&self, badge_awards: BadgeAwards) -> JoinHandle<()> {
+        async fn inner(db: Database, badge_awards: &BadgeAwards) -> Result<()> {
+            let mut tx = db
+                .begin()
+                .await
+                .context("failed to begin transaction for badge awards")?;
+
+            sqlx::query!("DELETE FROM badgeAwards")
+                .execute(tx.deref_mut())
+                .await
+                .context("failed to delete rows in badge awards")?;
+
+            for (badge_id, user_id, awarded_at) in badge_awards.iter() {
+                let query = sqlx::query!(
+                    r#"
+INSERT INTO badgeAwards (
+badgeId, userId, awardedAt
+) 
+VALUES 
+(?, ?, ?)"#,
+                    badge_id,
+                    user_id,
+                    awarded_at
+                );
+
+                query
+                    .execute(tx.deref_mut())
+                    .await
+                    .context("failed to execute badge awards query")?;
+            }
+
+            tx.commit()
+                .await
+                .context("failed to commit badge awards transaction")?;
+
+            Ok(())
+        }
+
+        let db = self.to_owned();
+
+        tokio::spawn(async move {
+            let res = inner(db, &badge_awards).await;
+            let _entered = info_span!("store_badge_awards").entered();
+
+            match res {
+                Ok(_) => info!("Successfully stored {} badge awards", badge_awards.len()),
+                Err(err) => error!(?err, "Failed to store badge awards"),
+            }
+        })
+    }
+
+    #[must_use]
     pub fn store_badges(&self, badges: Badges) -> JoinHandle<()> {
         async fn inner(db: Database, badges: &Badges) -> Result<()> {
             let mut tx = db
                 .begin()
                 .await
-                .context("failed to begin transaction for Badges")?;
+                .context("failed to begin transaction for badges")?;
 
-            sqlx::query!("DELETE FROM Badges")
+            sqlx::query!("DELETE FROM badges")
                 .execute(tx.deref_mut())
                 .await
-                .context("failed to delete rows in Badges")?;
+                .context("failed to delete rows in badges")?;
 
             for (key, value) in badges.iter() {
                 let BadgeKey { image_url } = key;
-
-                let BadgeEntry {
-                    description,
-                    id,
-                    awarded_at,
-                    users,
-                } = value;
+                let BadgeEntry { description, id } = value;
 
                 let name = image_url
                     .rsplit_once('/')
@@ -417,28 +463,26 @@ UPDATE
 
                 let query = sqlx::query!(
                     r#"
-INSERT INTO Badges (
-  id, name, image_url, description, awarded_at, users
+INSERT INTO badges (
+  id, name, image, description
 ) 
 VALUES 
-  (?, ?, ?, ?, ?, ?)"#,
+  (?, ?, ?, ?)"#,
                     id,
                     name,
                     image_url.as_ref(),
                     description.as_ref(),
-                    awarded_at,
-                    users.to_string(),
                 );
 
                 query
                     .execute(tx.deref_mut())
                     .await
-                    .context("failed to execute Badges query")?;
+                    .context("failed to execute badges query")?;
             }
 
             tx.commit()
                 .await
-                .context("failed to commit Badges transaction")?;
+                .context("failed to commit badges transaction")?;
 
             Ok(())
         }

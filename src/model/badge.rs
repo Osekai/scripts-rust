@@ -1,17 +1,19 @@
 use std::{
+    borrow::Borrow,
     cmp::Ordering,
     collections::{
         hash_map::{Iter, IterMut},
-        HashMap, HashSet,
+        HashMap,
     },
-    fmt::{Display, Formatter, Result as FmtResult},
     mem,
 };
 
 use rosu_v2::prelude::Badge;
-use time::OffsetDateTime;
+use time::Date;
 
-use crate::util::IntHasher;
+pub type BadgeAwards = Vec<(BadgeId, UserId, Date)>;
+pub type BadgeId = u32;
+pub type UserId = u32;
 
 // Different badges may have the same description so we
 // use the image url as key instead.
@@ -22,11 +24,15 @@ pub struct BadgeKey {
     pub image_url: Box<str>,
 }
 
+impl Borrow<str> for BadgeKey {
+    fn borrow(&self) -> &str {
+        &self.image_url
+    }
+}
+
 pub struct BadgeEntry {
     pub description: Box<str>,
     pub id: Option<u32>,
-    pub awarded_at: OffsetDateTime,
-    pub users: BadgeOwners,
 }
 
 #[derive(Default)]
@@ -49,25 +55,29 @@ impl Badges {
         self.inner.len()
     }
 
-    pub fn insert(&mut self, user_id: u32, badge: &mut Badge) {
-        let mut image_url = mem::take(&mut badge.image_url);
+    pub fn insert(&mut self, badge: &mut Badge) {
+        if let Some(idx) = badge.image_url.find('?') {
+            badge.image_url.truncate(idx);
+        }
 
-        if let Some(idx) = image_url.find('?') {
-            image_url.truncate(idx);
+        let image_url = badge.image_url.as_str();
+
+        if self.inner.contains_key(image_url) {
+            return;
         }
 
         let key = BadgeKey {
-            image_url: image_url.into_boxed_str(),
+            // We'll need the image url again later so instead of
+            // `mem::take` we just clone it.
+            image_url: Box::from(image_url),
         };
 
-        let entry = self.inner.entry(key).or_insert_with(|| BadgeEntry {
+        let value = BadgeEntry {
             description: mem::take(&mut badge.description).into_boxed_str(),
-            awarded_at: badge.awarded_at,
-            users: BadgeOwners::default(),
             id: None,
-        });
+        };
 
-        entry.users.insert(user_id);
+        self.inner.insert(key, value);
     }
 
     pub fn iter(&self) -> Iter<'_, BadgeKey, BadgeEntry> {
@@ -79,47 +89,10 @@ impl Badges {
     }
 }
 
-pub struct BadgeOwners(HashSet<u32, IntHasher>);
-
-impl BadgeOwners {
-    fn insert(&mut self, user_id: u32) {
-        self.0.insert(user_id);
-    }
-
-    pub fn extend(&mut self, user_ids: &[u32]) {
-        self.0.extend(user_ids);
-    }
-}
-
-impl Default for BadgeOwners {
-    fn default() -> Self {
-        Self(HashSet::with_hasher(IntHasher))
-    }
-}
-
-impl Display for BadgeOwners {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("[")?;
-
-        let mut iter = self.0.iter();
-
-        if let Some(elem) = iter.next() {
-            Display::fmt(elem, f)?;
-
-            for elem in iter {
-                write!(f, ",{elem}")?;
-            }
-        }
-
-        f.write_str("]")
-    }
-}
-
+#[derive(Debug)]
 pub struct SlimBadge {
     pub id: u32,
     pub description: Box<str>,
-    pub users: Box<[u32]>,
     pub image_url: Box<str>,
 }
 

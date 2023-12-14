@@ -14,7 +14,7 @@ use crate::{
     client::Client,
     config::Config,
     database::Database,
-    model::{Badges, MedalRarities, OsuUser, Progress, RankingsIter, ScrapedMedal},
+    model::{BadgeAwards, Badges, MedalRarities, OsuUser, Progress, RankingsIter, ScrapedMedal},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -108,7 +108,7 @@ impl Context {
 
         // Store badges if required
         if !badges.is_empty() && task.badges() {
-            db_handles.push(self.mysql.store_badges(badges));
+            self.handle_badges(&users, badges, &mut db_handles).await;
         }
 
         // If badges are all that was required then we're already done
@@ -252,7 +252,7 @@ impl Context {
             if check_badges {
                 if let OsuUser::Available(ref mut user) = user {
                     for badge in user.badges.iter_mut() {
-                        badges.insert(user_id, badge);
+                        badges.insert(badge);
                     }
                 }
             }
@@ -300,12 +300,52 @@ impl Context {
 
                 if let Some(slim_badge) = slim_badge {
                     badge.id = Some(slim_badge.id);
-                    badge.users.extend(&slim_badge.users);
                 }
             }
         }
 
         (users, badges, progress)
+    }
+
+    async fn handle_badges(
+        &self,
+        users: &[OsuUser],
+        badges: Badges,
+        db_handles: &mut Vec<JoinHandle<()>>,
+    ) {
+        // Store and then fetch badges so the badge ids are available
+        if self.mysql.store_badges(badges).await.is_ok() {
+            match self.mysql.fetch_badges().await {
+                Ok(badges) => {
+                    let mut badge_awards = BadgeAwards::with_capacity(users.len());
+
+                    for user in users.iter() {
+                        let OsuUser::Available(user) = user else {
+                            continue;
+                        };
+
+                        for badge in user.badges.iter() {
+                            let end = badge.image_url.find('?').unwrap_or(badge.image_url.len());
+                            let image_url = &badge.image_url[..end];
+
+                            let stored = badges.iter().find(|b| b.image_url.as_ref() == image_url);
+
+                            let Some(stored) = stored else {
+                                warn!("Missing stored badge with image url `{image_url}`");
+                                continue;
+                            };
+
+                            badge_awards.push((stored.id, user.user_id, badge.awarded_at.date()));
+                        }
+                    }
+
+                    if !badge_awards.is_empty() {
+                        db_handles.push(self.mysql.store_badge_awards(badge_awards));
+                    }
+                }
+                Err(err) => error!(?err, "Failed to fetch badges from DB"),
+            }
+        }
     }
 
     async fn handle_rarities_and_ranking(
