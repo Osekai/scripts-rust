@@ -50,15 +50,13 @@ impl Badges {
     }
 
     pub fn insert(&mut self, user_id: u32, badge: &mut Badge) {
-        let mut image_url = mem::take(&mut badge.image_url);
-
-        if let Some(idx) = image_url.find('?') {
-            image_url.truncate(idx);
-        }
-
-        let key = BadgeKey {
-            image_url: image_url.into_boxed_str(),
+        let image_url = if let Some(idx) = badge.image_url.find('?') {
+            Box::from(&badge.image_url[..idx])
+        } else {
+            mem::take(&mut badge.image_url).into_boxed_str()
         };
+
+        let key = BadgeKey { image_url };
 
         let entry = self.inner.entry(key).or_insert_with(|| BadgeEntry {
             description: mem::take(&mut badge.description).into_boxed_str(),
