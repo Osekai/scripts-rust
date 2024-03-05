@@ -1,7 +1,7 @@
 pub use self::{
     args::{Args, ArgsResult},
     eta::{Eta, TimeEstimate},
-    hasher::{IntHash, IntHasher},
+    hasher::IntHasher,
 };
 
 mod args;
