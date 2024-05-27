@@ -1,6 +1,7 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
+use time::OffsetDateTime;
 use tokio::task::JoinHandle;
 
 use crate::model::{
@@ -18,6 +19,8 @@ impl Database {
             .context("failed to acquire connection to update RankingLoopInfo")?;
 
         let Progress {
+            id,
+            start,
             current,
             total,
             eta_seconds,
@@ -26,16 +29,24 @@ impl Database {
 
         let query = sqlx::query!(
             r#"
-UPDATE 
-  RankingLoopInfo 
-SET 
-  CurrentLoop = ?, 
-  CurrentCount = ?, 
-  TotalCount = ?, 
-  EtaSeconds = ? 
-LIMIT 
-  1"#,
+INSERT INTO 
+  Rankings_Script_History (
+    `ID`, 
+    `Type`, 
+    `Time`, 
+    `Count_Current`, 
+    `Count_Total`, 
+    `Elapsed_Seconds`, 
+    `Elapsed_Last_Update` 
+) VALUES (?, ?, ?, ?, ?, ?, NOW())
+ON DUPLICATE KEY UPDATE
+  `Count_Current` = VALUES(`Count_Current`), 
+  `Count_Total` = VALUES(`Count_Total`), 
+  `Elapsed_Seconds` = VALUES(`Elapsed_Seconds`), 
+  `Elapsed_Last_Update` = VALUES(`Elapsed_Last_Update`)"#,
+            id,
             task.to_string(),
+            start,
             *current as i32,
             *total as i32,
             eta_seconds,
