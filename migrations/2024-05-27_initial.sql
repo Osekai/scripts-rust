@@ -83,3 +83,10 @@ CREATE TABLE `Rankings_Users` (
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+DROP TABLE IF EXISTS `System_Users`;
+CREATE TABLE `System_Users` (
+  `User_ID` int(11) NOT NULL,
+  `Name` varchar(27) DEFAULT NULL,
+  `Joined_Date` datetime DEFAULT NULL,
+  PRIMARY KEY (`User_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

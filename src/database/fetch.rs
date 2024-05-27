@@ -15,54 +15,52 @@ impl Database {
         &self,
         user_ids: &mut HashSet<u32, IntHasher>,
     ) -> Result<()> {
-        //         let mut conn = self
-        //             .acquire()
-        //             .await
-        //             .context("failed to acquire connection to fetch ranking ids")?;
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to fetch ranking ids")?;
 
-        //         let query = sqlx::query!(
-        //             r#"
-        // SELECT
-        //   id
-        // FROM
-        //   Ranking"#
-        //         );
+        let query = sqlx::query!(
+            r#"
+        SELECT
+          `ID` as id
+        FROM
+        Rankings_Users"#
+        );
 
-        //         query
-        //             .fetch(conn.deref_mut())
-        //             .try_for_each(|row| {
-        //                 user_ids.insert(row.id as u32);
+        query
+            .fetch(conn.deref_mut())
+            .try_for_each(|row| {
+                user_ids.insert(row.id as u32);
 
-        //                 std::future::ready(Ok(()))
-        //             })
-        //             .await
-        //             .context("failed to fetch all ranking ids")?;
+                std::future::ready(Ok(()))
+            })
+            .await
+            .context("failed to fetch all ranking ids")?;
 
         Ok(())
     }
 
     pub async fn fetch_osekai_user_ids(&self) -> Result<HashSet<u32, IntHasher>> {
-        //         let mut conn = self
-        //             .acquire()
-        //             .await
-        //             .context("failed to acquire connection to fetch user ids")?;
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to fetch system user ids")?;
 
-        //         let query = sqlx::query!(
-        //             r#"
-        // SELECT
-        //   id
-        // FROM
-        //   Members"#
-        //         );
+        let query = sqlx::query!(
+            r#"
+        SELECT
+          `User_ID` as id
+        FROM
+          System_Users"#
+        );
 
-        //         query
-        //             .fetch(conn.deref_mut())
-        //             .map_ok(|row| row.id as u32)
-        //             .try_collect()
-        //             .await
-        //             .context("failed to fetch all user ids")
-
-        Ok(Default::default())
+        query
+            .fetch(conn.deref_mut())
+            .map_ok(|row| row.id as u32)
+            .try_collect()
+            .await
+            .context("failed to fetch system user ids")
     }
 
     /// The resulting badges will be sorted by their description.

@@ -340,35 +340,35 @@ WHERE
     #[must_use]
     pub fn store_rarities(&self, rarities: MedalRarities) -> JoinHandle<()> {
         async fn inner(db: Database, rarities: &MedalRarities) -> Result<()> {
-            //             let mut tx = db
-            //                 .begin()
-            //                 .await
-            //                 .context("failed to begin transaction for MedalRarity")?;
+            let mut tx = db
+                .begin()
+                .await
+                .context("failed to begin transaction for Medals_Data")?;
 
-            //             for (medal_id, MedalRarityEntry { count, frequency }) in rarities.iter() {
-            //                 let query = sqlx::query!(
-            //                     r#"
-            // INSERT INTO MedalRarity (id, frequency, count)
-            // VALUES
-            //   (?, ?, ?) ON DUPLICATE KEY
-            // UPDATE
-            //   id = VALUES(id),
-            //   frequency = VALUES(frequency),
-            //   count = VALUES(count)"#,
-            //                     medal_id,
-            //                     frequency,
-            //                     count
-            //                 );
+            for (medal_id, MedalRarityEntry { count, frequency }) in rarities.iter() {
+                let query = sqlx::query!(
+                    r#"
+UPDATE
+  Medals_Data
+SET
+  `Frequency` = ?,
+  `Count_Achieved_By` = ?
+WHERE
+  `Medal_ID` = ?"#,
+                    frequency,
+                    count,
+                    medal_id,
+                );
 
-            //                 query
-            //                     .execute(tx.deref_mut())
-            //                     .await
-            //                     .context("failed to execute MedalRarity query")?;
-            //             }
+                query
+                    .execute(tx.deref_mut())
+                    .await
+                    .context("failed to execute Medals_Data query")?;
+            }
 
-            //             tx.commit()
-            //                 .await
-            //                 .context("failed to commit MedalRarity transaction")?;
+            tx.commit()
+                .await
+                .context("failed to commit Medals_Data transaction")?;
 
             Ok(())
         }
