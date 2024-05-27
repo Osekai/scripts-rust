@@ -278,60 +278,60 @@ ON DUPLICATE KEY UPDATE
     #[must_use]
     pub fn store_medals(&self, medals: Box<[ScrapedMedal]>) -> JoinHandle<()> {
         async fn inner(db: Database, medals: &[ScrapedMedal]) -> Result<()> {
-            //             let mut tx = db
-            //                 .begin()
-            //                 .await
-            //                 .context("failed to begin transaction for Medals")?;
+            let mut tx = db
+                .begin()
+                .await
+                .context("failed to begin transaction for Medals_Data")?;
 
-            //             for medal in medals {
-            //                 let ScrapedMedal {
-            //                     icon_url,
-            //                     id,
-            //                     name,
-            //                     grouping,
-            //                     ordering,
-            //                     description,
-            //                     mode,
-            //                     instructions,
-            //                 } = medal;
+            for medal in medals {
+                let ScrapedMedal {
+                    icon_url,
+                    id,
+                    name,
+                    grouping,
+                    ordering,
+                    description,
+                    mode,
+                    instructions,
+                } = medal;
 
-            //                 let query = sqlx::query!(
-            //                     r#"
-            // INSERT INTO Medals (
-            //   medalid, name, link, description,
-            //   restriction, `grouping`, instructions,
-            //   ordering
-            // )
-            // VALUES
-            //   (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY
-            // UPDATE
-            //   medalid = VALUES(medalid),
-            //   name = VALUES(name),
-            //   link = VALUES(link),
-            //   description = VALUES(description),
-            //   restriction = VALUES(restriction),
-            //   `grouping` = VALUES(`grouping`),
-            //   ordering = VALUES(ordering),
-            //   instructions = VALUES(instructions)"#,
-            //                     id,
-            //                     name.as_ref(),
-            //                     icon_url.as_ref(),
-            //                     description.as_ref(),
-            //                     mode.as_deref().unwrap_or("NULL"),
-            //                     grouping.as_ref(),
-            //                     instructions.as_deref(),
-            //                     ordering,
-            //                 );
+                let query = sqlx::query!(
+                    r#"
+            INSERT INTO Medals_Data (
+              `Medal_ID`, `Name`, `Link`, `Description`,
+              `Gamemode`, `Grouping`, `Instructions`,
+              `Ordering`
+            )
+            VALUES
+              (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY
+            UPDATE
+              `Medal_ID` = VALUES(`Medal_ID`),
+              `Name` = VALUES(`Name`),
+              `Link` = VALUES(`Link`),
+              `Description` = VALUES(`Description`),
+              `Gamemode` = VALUES(`Gamemode`),
+              `Grouping` = VALUES(`Grouping`),
+              `Instructions` = VALUES(`Instructions`),
+              `Ordering` = VALUES(`Ordering`)"#,
+                    id,
+                    name.as_ref(),
+                    icon_url.as_ref(),
+                    description.as_ref(),
+                    mode.as_deref(),
+                    grouping.as_ref(),
+                    instructions.as_deref(),
+                    ordering,
+                );
 
-            //                 query
-            //                     .execute(tx.deref_mut())
-            //                     .await
-            //                     .context("failed to execute Medals query")?;
-            //             }
+                query
+                    .execute(tx.deref_mut())
+                    .await
+                    .context("failed to execute Medals_Data query")?;
+            }
 
-            //             tx.commit()
-            //                 .await
-            //                 .context("failed to commit Medals transaction")?;
+            tx.commit()
+                .await
+                .context("failed to commit Medals_Data transaction")?;
 
             Ok(())
         }
