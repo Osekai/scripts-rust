@@ -19,7 +19,6 @@ impl Database {
             .context("failed to acquire connection to upsert Rankings_Script_History")?;
 
         let Progress {
-            id,
             start,
             current,
             total,
@@ -44,7 +43,7 @@ ON DUPLICATE KEY UPDATE
   `Count_Total` = VALUES(`Count_Total`), 
   `Elapsed_Seconds` = VALUES(`Elapsed_Seconds`), 
   `Elapsed_Last_Update` = VALUES(`Elapsed_Last_Update`)"#,
-            id,
+            start.unix_timestamp() as u64,
             task.to_string(),
             start,
             *current as i32,
