@@ -43,7 +43,7 @@ ON DUPLICATE KEY UPDATE
   `Count_Total` = VALUES(`Count_Total`), 
   `Elapsed_Seconds` = VALUES(`Elapsed_Seconds`), 
   `Elapsed_Last_Update` = VALUES(`Elapsed_Last_Update`)"#,
-            start.unix_timestamp() as u64,
+            start.unix_timestamp(),
             task.to_string(),
             start,
             *current as i32,
@@ -54,54 +54,43 @@ ON DUPLICATE KEY UPDATE
         query
             .execute(conn.deref_mut())
             .await
-            .context("failed to execute RankingLoopInfo query")?;
+            .context("failed to execute Rankings_Script_History query")?;
 
         Ok(())
     }
 
     pub async fn store_finish(&self, finish: &Finish) -> Result<()> {
-        // let mut tx = self
-        //     .begin()
-        //     .await
-        //     .context("failed to begin transaction for RankingLoopHistory")?;
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to finish Rankings_Script_History")?;
 
-        // let Finish {
-        //     requested_users,
-        //     task,
-        // } = finish;
+        let Finish {
+            id,
+            requested_users,
+        } = finish;
 
-        //         let insert_query = sqlx::query!(
-        //             r#"
-        // INSERT INTO RankingLoopHistory (Time, LoopType, Amount)
-        // VALUES
-        //   (CURRENT_TIMESTAMP, ?, ?)"#,
-        //             task.to_string(),
-        //             *requested_users as i32
-        //         );
+        let query = sqlx::query!(
+            r#"
+UPDATE 
+  Rankings_Script_History
+SET 
+  `Count_Current` = ?, 
+  `Count_Total` = ?, 
+  `Elapsed_Seconds` = ?, 
+  `Elapsed_Last_Update` = NOW()
+WHERE
+  `ID` = ?"#,
+            *requested_users as i64,
+            *requested_users as i64,
+            0,
+            id,
+        );
 
-        //         insert_query
-        //             .execute(tx.deref_mut())
-        //             .await
-        //             .context("failed to execute RankingLoopHistory query")?;
-
-        //         let update_query = sqlx::query!(
-        //             r#"
-        // UPDATE
-        //   RankingLoopInfo
-        // SET
-        //   CurrentLoop = "Complete"
-        // LIMIT
-        //   1"#
-        //         );
-
-        //         update_query
-        //             .execute(tx.deref_mut())
-        //             .await
-        //             .context("failed to execute RankingLoopInfo query")?;
-
-        //         tx.commit()
-        //             .await
-        //             .context("failed to commit finish transaction")?;
+        query
+            .execute(conn.deref_mut())
+            .await
+            .context("failed to execute Rankings_Script_History query")?;
 
         Ok(())
     }

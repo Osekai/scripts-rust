@@ -43,15 +43,15 @@ impl Progress {
 
 #[derive(Copy, Clone, Serialize)]
 pub struct Finish {
+    pub id: i64,
     pub requested_users: usize,
-    pub task: Task,
 }
 
 impl From<Progress> for Finish {
     fn from(progress: Progress) -> Self {
         Self {
+            id: progress.start.unix_timestamp(),
             requested_users: progress.total,
-            task: progress.task,
         }
     }
 }
