@@ -38,8 +38,6 @@ pub struct UserFull {
     pub inner: [ModeStats; 4],
     pub badges: Box<[Badge]>,
     pub country_code: Box<str>,
-    pub followers: u32,
-    pub kudosu: i32,
     pub maps_ranked: u16,
     pub maps_loved: u16,
     pub medals: Box<[MedalCompact]>,
@@ -53,8 +51,6 @@ impl UserFull {
     pub fn new(std: User, tko: User, ctb: User, mna: User) -> Self {
         let badges = std.badges.unwrap_or_default().into_boxed_slice();
         let country_code = std.country_code.into_string().into_boxed_str();
-        let followers = std.follower_count.unwrap_or(0);
-        let kudosu = std.kudosu.total;
         let maps_ranked = std.ranked_mapset_count.map_or(0, |count| count as u16);
         let maps_loved = std.loved_mapset_count.map_or(0, |count| count as u16);
         let medals = std.medals.unwrap_or_default().into_boxed_slice();
@@ -76,8 +72,6 @@ impl UserFull {
             inner: [std.into(), tko.into(), ctb.into(), mna.into()],
             badges,
             country_code,
-            followers,
-            kudosu,
             maps_ranked,
             maps_loved,
             medals,

@@ -1,15 +1,7 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::{Formatter, Result as FmtResult},
-    string::FromUtf8Error,
-};
+use std::{collections::HashMap, string::FromUtf8Error};
 
 use eyre::{Context as _, ContextCompat as _, Result};
 use scraper::{Html, Selector};
-use serde::{
-    de::{DeserializeSeed, Error as SerdeError, IgnoredAny, MapAccess, SeqAccess, Visitor},
-    Deserializer as DeserializerTrait,
-};
 
 use crate::{
     model::{MedalRarities, OsuUser, ScrapedMedal, ScrapedUser},
@@ -71,61 +63,5 @@ impl Context {
             .into_iter()
             .map(|(medal_id, count)| (medal_id, count, (100 * count) as f32 / user_count))
             .collect()
-    }
-}
-
-struct MedalsVisitor;
-
-impl<'de> Visitor<'de> for MedalsVisitor {
-    type Value = HashSet<u16, IntHasher>;
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("a list containing objects with a medalid field")
-    }
-
-    #[inline]
-    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
-        let mut medals = HashSet::with_capacity_and_hasher(300, IntHasher);
-
-        while seq.next_element_seed(MedalId(&mut medals))?.is_some() {}
-
-        Ok(medals)
-    }
-}
-
-struct MedalId<'m>(&'m mut HashSet<u16, IntHasher>);
-
-impl<'de> DeserializeSeed<'de> for MedalId<'_> {
-    type Value = ();
-
-    #[inline]
-    fn deserialize<D: DeserializerTrait<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
-        d.deserialize_map(self)
-    }
-}
-
-impl<'de> Visitor<'de> for MedalId<'_> {
-    type Value = ();
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("an object with a medalid field")
-    }
-
-    #[inline]
-    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
-        let mut medal_id = None;
-
-        while let Some(key) = map.next_key::<&str>()? {
-            if key == "medalid" {
-                medal_id = Some(map.next_value()?);
-            } else {
-                let _: IgnoredAny = map.next_value()?;
-            }
-        }
-
-        let medal_id = medal_id.ok_or_else(|| SerdeError::missing_field("medalid"))?;
-        self.0.insert(medal_id);
-
-        Ok(())
     }
 }

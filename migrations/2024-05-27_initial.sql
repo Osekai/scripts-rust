@@ -1,19 +1,18 @@
 DROP TABLE IF EXISTS `Badges_Data`;
 CREATE TABLE `Badges_Data` (
-  `ID` int(8) NOT NULL,
   `Name` varchar(100) NOT NULL,
   `Image_URL` varchar(100) DEFAULT NULL,
-  PRIMARY KEY (`ID`,`Name`)
+  PRIMARY KEY (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-DROP TABLE IF EXISTS `Badges_Users`;
-CREATE TABLE `Badges_Users` (
-  `Badge_ID` int(8) NOT NULL,
+DROP TABLE IF EXISTS `Badge_Name`;
+CREATE TABLE `Badge_Name` (
+  `Name` varchar(100) NOT NULL,
   `User_ID` int(11) NOT NULL,
   `Description` varchar(2000) DEFAULT NULL,
   `Date_Awarded` datetime DEFAULT NULL,
-  PRIMARY KEY (`Badge_ID`,`User_ID`)
+  PRIMARY KEY (`Name`,`User_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

@@ -1,12 +1,11 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
-use time::OffsetDateTime;
 use tokio::task::JoinHandle;
 
 use crate::model::{
-    BadgeEntry, BadgeKey, Badges, Finish, MedalRarities, MedalRarityEntry, Progress, RankingUser,
-    RankingsIter, ScrapedMedal,
+    BadgeDescription, BadgeImageUrl, BadgeName, BadgeOwner, Badges, Finish, MedalRarities,
+    MedalRarityEntry, Progress, RankingUser, RankingsIter, ScrapedMedal,
 };
 
 use super::Database;
@@ -98,153 +97,143 @@ WHERE
     #[must_use]
     pub fn store_rankings(&self, rankings: RankingsIter) -> JoinHandle<()> {
         async fn inner(db: Database, rankings: RankingsIter) -> Result<()> {
-            //             let mut tx = db
-            //                 .begin()
-            //                 .await
-            //                 .context("failed to begin transaction for Ranking")?;
+            let mut tx = db
+                .begin()
+                .await
+                .context("failed to begin transaction for Rankings_Users")?;
 
-            //             for ranking in rankings {
-            //                 let stdev_acc = ranking.std_dev_acc();
-            //                 let stdev_level = ranking.std_dev_level();
-            //                 let stdev_pp = ranking.std_dev_pp();
-            //                 let total_pp = ranking.total_pp();
+            for ranking in rankings {
+                let stdev_acc = ranking.std_dev_acc();
+                let stdev_level = ranking.std_dev_level();
+                let stdev_pp = ranking.std_dev_pp();
+                let total_pp = ranking.total_pp();
 
-            //                 let RankingUser {
-            //                     id,
-            //                     name,
-            //                     ignore_acc,
-            //                     medal_count,
-            //                     rarest_medal_id,
-            //                     rarest_medal_achieved,
-            //                     country_code,
-            //                     badge_count,
-            //                     ranked_maps,
-            //                     loved_maps,
-            //                     followers,
-            //                     subscribers,
-            //                     replays_watched,
-            //                     kudosu,
-            //                     restricted,
-            //                     std,
-            //                     tko,
-            //                     ctb,
-            //                     mna,
-            //                 } = ranking;
+                let RankingUser {
+                    id,
+                    name,
+                    ignore_acc,
+                    medal_count,
+                    rarest_medal_id,
+                    rarest_medal_achieved,
+                    country_code,
+                    badge_count,
+                    ranked_maps,
+                    loved_maps,
+                    subscribers,
+                    replays_watched,
+                    restricted,
+                    std,
+                    tko,
+                    ctb,
+                    mna,
+                } = ranking;
 
-            //                 let mut std_acc = std.acc;
-            //                 let mut tko_acc = tko.acc;
-            //                 let mut ctb_acc = ctb.acc;
-            //                 let mut mna_acc = mna.acc;
+                let mut std_acc = std.acc;
+                let mut tko_acc = tko.acc;
+                let mut ctb_acc = ctb.acc;
+                let mut mna_acc = mna.acc;
 
-            //                 if ignore_acc {
-            //                     std_acc = 0.0;
-            //                     tko_acc = 0.0;
-            //                     ctb_acc = 0.0;
-            //                     mna_acc = 0.0;
-            //                 }
+                if ignore_acc {
+                    std_acc = 0.0;
+                    tko_acc = 0.0;
+                    ctb_acc = 0.0;
+                    mna_acc = 0.0;
+                }
 
-            //                 let query = sqlx::query!(
-            //                     r#"
-            // INSERT INTO Ranking (
-            //   id, name, total_pp, stdev_pp, standard_pp,
-            //   taiko_pp, ctb_pp, mania_pp, medal_count,
-            //   rarest_medal, country_code, standard_global,
-            //   taiko_global, ctb_global, mania_global,
-            //   badge_count, ranked_maps, loved_maps,
-            //   subscribers, followers, replays_watched,
-            //   rarest_medal_achieved, restricted,
-            //   stdev_acc, standard_acc, taiko_acc,
-            //   ctb_acc, mania_acc, stdev_level,
-            //   standard_level, taiko_level, ctb_level,
-            //   mania_level, kudosu, avatar_url
-            // )
-            // VALUES
-            //   (
-            //     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-            //     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-            //     ?, ?, ?, ?
-            //   ) ON DUPLICATE KEY
-            // UPDATE
-            //   id = VALUES(id),
-            //   name = VALUES(name),
-            //   total_pp = VALUES(total_pp),
-            //   stdev_pp = VALUES(stdev_pp),
-            //   standard_pp = VALUES(standard_pp),
-            //   taiko_pp = VALUES(taiko_pp),
-            //   ctb_pp = VALUES(ctb_pp),
-            //   mania_pp = VALUES(mania_pp),
-            //   medal_count = VALUES(medal_count),
-            //   rarest_medal = VALUES(rarest_medal),
-            //   country_code = VALUES(country_code),
-            //   standard_global = VALUES(standard_global),
-            //   taiko_global = VALUES(taiko_global),
-            //   ctb_global = VALUES(ctb_global),
-            //   mania_global = VALUES(mania_global),
-            //   badge_count = VALUES(badge_count),
-            //   ranked_maps = VALUES(ranked_maps),
-            //   loved_maps = VALUES(loved_maps),
-            //   subscribers = VALUES(subscribers),
-            //   followers = VALUES(followers),
-            //   replays_watched = VALUES(replays_watched),
-            //   rarest_medal_achieved = VALUES(rarest_medal_achieved),
-            //   restricted = VALUES(restricted),
-            //   stdev_acc = VALUES(stdev_acc),
-            //   standard_acc = VALUES(standard_acc),
-            //   taiko_acc = VALUES(taiko_acc),
-            //   ctb_acc = VALUES(ctb_acc),
-            //   mania_acc = VALUES(mania_acc),
-            //   stdev_level = VALUES(stdev_level),
-            //   standard_level = VALUES(standard_level),
-            //   taiko_level = VALUES(taiko_level),
-            //   ctb_level = VALUES(ctb_level),
-            //   mania_level = VALUES(mania_level),
-            //   kudosu = VALUES(kudosu)"#,
-            //                     id,
-            //                     name.as_ref(),
-            //                     total_pp,
-            //                     stdev_pp,
-            //                     std.pp,
-            //                     tko.pp,
-            //                     ctb.pp,
-            //                     mna.pp,
-            //                     medal_count,
-            //                     rarest_medal_id,
-            //                     country_code.as_ref(),
-            //                     std.global_rank.map(NonZeroU32::get),
-            //                     tko.global_rank.map(NonZeroU32::get),
-            //                     ctb.global_rank.map(NonZeroU32::get),
-            //                     mna.global_rank.map(NonZeroU32::get),
-            //                     badge_count,
-            //                     ranked_maps,
-            //                     loved_maps,
-            //                     subscribers,
-            //                     followers,
-            //                     replays_watched,
-            //                     rarest_medal_achieved,
-            //                     restricted as u8,
-            //                     stdev_acc,
-            //                     std_acc,
-            //                     tko_acc,
-            //                     ctb_acc,
-            //                     mna_acc,
-            //                     stdev_level,
-            //                     std.level,
-            //                     tko.level,
-            //                     ctb.level,
-            //                     mna.level,
-            //                     kudosu,
-            //                     0_i32, // the avatar_url column is no longer needed
-            //                 );
+                let query = sqlx::query!(
+                    r#"
+            INSERT INTO Rankings_Users (
+                `ID`, `Accuracy_Catch`, `Accuracy_Mania`, `Accuracy_Standard`, 
+                `Accuracy_Stdev`, `Accuracy_Taiko`, `Count_Badges`, 
+                `Count_Maps_Loved`, `Count_Maps_Ranked`, `Count_Medals`, 
+                `Count_Replays_Watched`, `Count_Subscribers`, `Country_Code`, 
+                `Is_Restricted`, `Level_Catch`, `Level_Mania`, `Level_Standard`, 
+                `Level_Stdev`, `Level_Taiko`, `Name`, `PP_Catch`, `PP_Mania`, 
+                `PP_Standard`, `PP_Stdev`, `PP_Taiko`, `PP_Total`, 
+                `Rank_Global_Catch`, `Rank_Global_Mania`, `Rank_Global_Standard`, 
+                `Rank_Global_Taiko`, `Rarest_Medal_Achieved`, `Rarest_Medal_ID`
+            )
+            VALUES
+              (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+              ) ON DUPLICATE KEY
+            UPDATE
+                `ID` = VALUES(`ID`), 
+                `Accuracy_Catch` = VALUES(`Accuracy_Catch`), 
+                `Accuracy_Mania` = VALUES(`Accuracy_Mania`), 
+                `Accuracy_Standard` = VALUES(`Accuracy_Standard`), 
+                `Accuracy_Stdev` = VALUES(`Accuracy_Stdev`), 
+                `Accuracy_Taiko` = VALUES(`Accuracy_Taiko`), 
+                `Count_Badges` = VALUES(`Count_Badges`), 
+                `Count_Maps_Loved` = VALUES(`Count_Maps_Loved`), 
+                `Count_Maps_Ranked` = VALUES(`Count_Maps_Ranked`), 
+                `Count_Medals` = VALUES(`Count_Medals`), 
+                `Count_Replays_Watched` = VALUES(`Count_Replays_Watched`), 
+                `Count_Subscribers` = VALUES(`Count_Subscribers`), 
+                `Country_Code` = VALUES(`Country_Code`), 
+                `Is_Restricted` = VALUES(`Is_Restricted`), 
+                `Level_Catch` = VALUES(`Level_Catch`), 
+                `Level_Mania` = VALUES(`Level_Mania`), 
+                `Level_Standard` = VALUES(`Level_Standard`), 
+                `Level_Stdev` = VALUES(`Level_Stdev`), 
+                `Level_Taiko` = VALUES(`Level_Taiko`), 
+                `Name` = VALUES(`Name`), 
+                `PP_Catch` = VALUES(`PP_Catch`), 
+                `PP_Mania` = VALUES(`PP_Mania`), 
+                `PP_Standard` = VALUES(`PP_Standard`), 
+                `PP_Stdev` = VALUES(`PP_Stdev`), 
+                `PP_Taiko` = VALUES(`PP_Taiko`), 
+                `PP_Total` = VALUES(`PP_Total`), 
+                `Rank_Global_Catch` = VALUES(`Rank_Global_Catch`), 
+                `Rank_Global_Mania` = VALUES(`Rank_Global_Mania`), 
+                `Rank_Global_Standard` = VALUES(`Rank_Global_Standard`), 
+                `Rank_Global_Taiko` = VALUES(`Rank_Global_Taiko`), 
+                `Rarest_Medal_Achieved` = VALUES(`Rarest_Medal_Achieved`), 
+                `Rarest_Medal_ID` = VALUES(`Rarest_Medal_ID`)"#,
+                    id,
+                    ctb_acc,
+                    mna_acc,
+                    std_acc,
+                    stdev_acc,
+                    tko_acc,
+                    badge_count,
+                    loved_maps,
+                    ranked_maps,
+                    medal_count,
+                    replays_watched,
+                    subscribers,
+                    country_code.as_ref(),
+                    restricted as u8,
+                    ctb.level,
+                    mna.level,
+                    std.level,
+                    stdev_level,
+                    tko.level,
+                    name.as_ref(),
+                    ctb.pp,
+                    mna.pp,
+                    std.pp,
+                    stdev_pp,
+                    tko.pp,
+                    total_pp,
+                    ctb.global_rank.map(NonZeroU32::get),
+                    mna.global_rank.map(NonZeroU32::get),
+                    std.global_rank.map(NonZeroU32::get),
+                    tko.global_rank.map(NonZeroU32::get),
+                    rarest_medal_achieved,
+                    rarest_medal_id,
+                );
 
-            //                 query
-            //                     .execute(tx.deref_mut())
-            //                     .await
-            //                     .context("failed to execute Ranking query")?;
-            //             }
+                query
+                    .execute(tx.deref_mut())
+                    .await
+                    .context("failed to execute Rankings_Users query")?;
+            }
 
-            //             tx.commit()
-            //                 .await
-            //                 .context("failed to commit Ranking transaction")?;
+            tx.commit()
+                .await
+                .context("failed to commit Rankings_Users transaction")?;
 
             Ok(())
         }
@@ -263,9 +252,11 @@ WHERE
         })
     }
 
-    #[must_use]
-    pub fn store_medals(&self, medals: Box<[ScrapedMedal]>) -> JoinHandle<()> {
-        async fn inner(db: Database, medals: &[ScrapedMedal]) -> Result<()> {
+    // This method does not return a JoinHandle but is async instead and should
+    // be called before `Database::store_rarities` so that the table does not
+    // deadlock.
+    pub async fn store_medals(&self, medals: &[ScrapedMedal]) {
+        async fn inner(db: &Database, medals: &[ScrapedMedal]) -> Result<()> {
             let mut tx = db
                 .begin()
                 .await
@@ -285,7 +276,7 @@ WHERE
 
                 let query = sqlx::query!(
                     r#"
-            INSERT INTO Medals_Data (
+            INSERT INTO `Medals_Data` (
               `Medal_ID`, `Name`, `Link`, `Description`,
               `Gamemode`, `Grouping`, `Instructions`,
               `Ordering`
@@ -324,17 +315,13 @@ WHERE
             Ok(())
         }
 
-        let db = self.to_owned();
+        let res = inner(self, &medals).await;
+        let _entered = info_span!("store_medals").entered();
 
-        tokio::spawn(async move {
-            let res = inner(db, &medals).await;
-            let _entered = info_span!("store_medals").entered();
-
-            match res {
-                Ok(_) => info!("Successfully stored {} medals", medals.len()),
-                Err(err) => error!(?err, "Failed to store medals"),
-            }
-        })
+        match res {
+            Ok(_) => info!("Successfully stored {} medals", medals.len()),
+            Err(err) => error!(?err, "Failed to store medals"),
+        }
     }
 
     #[must_use]
@@ -349,7 +336,7 @@ WHERE
                 let query = sqlx::query!(
                     r#"
 UPDATE
-  Medals_Data
+  `Medals_Data`
 SET
   `Frequency` = ?,
   `Count_Achieved_By` = ?
@@ -389,55 +376,68 @@ WHERE
     #[must_use]
     pub fn store_badges(&self, badges: Badges) -> JoinHandle<()> {
         async fn inner(db: Database, badges: &Badges) -> Result<()> {
-            //             let mut tx = db
-            //                 .begin()
-            //                 .await
-            //                 .context("failed to begin transaction for Badges")?;
+            let mut tx = db
+                .begin()
+                .await
+                .context("failed to begin transaction for badges")?;
 
-            //             sqlx::query!("DELETE FROM Badges")
-            //                 .execute(tx.deref_mut())
-            //                 .await
-            //                 .context("failed to delete rows in Badges")?;
+            sqlx::query!("DELETE FROM `Badge_Name`")
+                .execute(tx.deref_mut())
+                .await
+                .context("failed to delete rows in Badges_Users")?;
 
-            //             for (key, value) in badges.iter() {
-            //                 let BadgeKey { image_url } = key;
+            for (BadgeDescription(description), entries) in badges.descriptions.iter() {
+                for (BadgeName(name), owners) in entries.iter() {
+                    for owner in owners {
+                        let BadgeOwner {
+                            user_id,
+                            awarded_at,
+                        } = owner;
 
-            //                 let BadgeEntry {
-            //                     description,
-            //                     id,
-            //                     awarded_at,
-            //                     users,
-            //                 } = value;
+                        let query = sqlx::query!(
+                            r#"
+                INSERT INTO `Badge_Name` (
+                  `Name`, `User_ID`, `Description`, `Date_Awarded`
+                )
+                VALUES
+                  (?, ?, ?, ?)"#,
+                            name.as_ref(),
+                            user_id,
+                            description.as_ref(),
+                            awarded_at,
+                        );
 
-            //                 let name = image_url
-            //                     .rsplit_once('/')
-            //                     .and_then(|(_, file)| file.rsplit_once('.'))
-            //                     .map(|(name, _)| name.replace(['-', '_'], " "));
+                        query
+                            .execute(tx.deref_mut())
+                            .await
+                            .context("failed to execute badge name query")?;
+                    }
+                }
+            }
 
-            //                 let query = sqlx::query!(
-            //                     r#"
-            // INSERT INTO Badges (
-            //   id, name, image_url, description, awarded_at, users
-            // )
-            // VALUES
-            //   (?, ?, ?, ?, ?, ?)"#,
-            //                     id,
-            //                     name,
-            //                     image_url.as_ref(),
-            //                     description.as_ref(),
-            //                     awarded_at,
-            //                     users.to_string(),
-            //                 );
+            for (BadgeName(name), BadgeImageUrl(image_url)) in badges.names.iter() {
+                let query = sqlx::query!(
+                    r#"
+        INSERT INTO `Badges_Data` (
+          `Name`, `Image_URL`
+        )
+        VALUES
+          (?, ?)
+        ON DUPLICATE KEY UPDATE
+          `Name` = `Name`"#,
+                    name.as_ref(),
+                    image_url.as_ref(),
+                );
 
-            //                 query
-            //                     .execute(tx.deref_mut())
-            //                     .await
-            //                     .context("failed to execute Badges query")?;
-            //             }
+                query
+                    .execute(tx.deref_mut())
+                    .await
+                    .context("failed to execute badges data query")?;
+            }
 
-            //             tx.commit()
-            //                 .await
-            //                 .context("failed to commit Badges transaction")?;
+            tx.commit()
+                .await
+                .context("failed to commit Badges transaction")?;
 
             Ok(())
         }

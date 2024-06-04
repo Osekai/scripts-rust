@@ -1,10 +1,14 @@
-use std::{collections::HashSet, ops::DerefMut};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::DerefMut,
+};
 
-use eyre::{Context as _, Report, Result};
-use futures_util::{StreamExt, TryStreamExt};
+use eyre::{Context as _, Result};
+use futures_util::{future, TryStreamExt};
+use time::OffsetDateTime;
 
 use crate::{
-    model::{MedalRarities, SlimBadge},
+    model::{BadgeDescription, BadgeImageUrl, BadgeName, BadgeOwner, Badges, MedalRarities},
     util::IntHasher,
 };
 
@@ -63,105 +67,139 @@ impl Database {
             .context("failed to fetch system user ids")
     }
 
-    /// The resulting badges will be sorted by their description.
-    pub async fn fetch_badges(&self) -> Result<Vec<SlimBadge>> {
-        //         let mut conn = self
-        //             .acquire()
-        //             .await
-        //             .context("failed to acquire connection to fetch badges")?;
+    pub async fn fetch_badges(&self) -> Result<Badges> {
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to fetch badges")?;
 
-        //         let query = sqlx::query!(
-        //             r#"
-        // SELECT
-        //   id,
-        //   description,
-        //   users,
-        //   image_url
-        // FROM
-        //   Badges"#
-        //         );
+        let query = sqlx::query!(
+            r#"
+            SELECT
+              `Name` as name, 
+              `Image_URL` as image_url 
+            FROM
+              `Badges_Data`"#
+        );
 
-        //         let mut badges: Vec<_> = query
-        //             .fetch(conn.deref_mut())
-        //             .map(|res| {
-        //                 let row = res?;
+        let names_fut = query
+            .fetch(conn.deref_mut())
+            .map_ok(|row| {
+                let name = row.name.into_boxed_str();
 
-        //                 let users = row
-        //                     .users
-        //                     .strip_prefix('[')
-        //                     .and_then(|suffix| suffix.strip_suffix(']'))
-        //                     .ok_or(Report::msg("expected square brackets in users string"))?
-        //                     .split(',')
-        //                     .map(str::trim)
-        //                     .map(str::parse)
-        //                     .collect::<Result<Box<[_]>, _>>()
-        //                     .map_err(|_| eyre!("failed to parse id in users string"))?;
+                let image_url = row
+                    .image_url
+                    .map(String::into_boxed_str)
+                    .unwrap_or_default();
 
-        //                 Ok::<_, Report>(SlimBadge {
-        //                     id: row.id as u32,
-        //                     description: row.description.into_boxed_str(),
-        //                     users,
-        //                     image_url: row.image_url.into_boxed_str(),
-        //                 })
-        //             })
-        //             .try_collect()
-        //             .await
-        //             .context("failed to fetch all badges")?;
+                (BadgeName(name), BadgeImageUrl(image_url))
+            })
+            .try_collect();
 
-        //         badges.sort_unstable();
+        let mut stored = Badges {
+            names: names_fut.await.context("failed to fetch badges data")?,
+            descriptions: HashMap::default(),
+        };
 
-        //         Ok(badges)
+        let query = sqlx::query!(
+            r#"
+        SELECT
+          `Name` as name, 
+          `User_ID` as user_id, 
+          `Description` as description, 
+          `Date_Awarded` as awarded_at 
+        FROM 
+          `Badge_Name`"#
+        );
 
-        Ok(Default::default())
+        query
+            .fetch(conn.deref_mut())
+            .try_for_each(|row| {
+                let owner = BadgeOwner {
+                    user_id: row.user_id as u32,
+                    awarded_at: row
+                        .awarded_at
+                        .map(|datetime| datetime.assume_utc())
+                        .unwrap_or_else(OffsetDateTime::now_utc),
+                };
+
+                let description = row.description.unwrap_or_default();
+
+                if let Some(names) = stored.descriptions.get_mut(description.as_str()) {
+                    if let Some(owners) = names.get_mut(row.name.as_str()) {
+                        owners.insert(owner);
+                    } else {
+                        names
+                            .entry(BadgeName(row.name.into_boxed_str()))
+                            .or_default()
+                            .insert(owner);
+                    }
+                } else {
+                    let mut owners = HashSet::default();
+                    owners.insert(owner);
+                    let mut names = HashMap::default();
+                    names.insert(BadgeName(row.name.into_boxed_str()), owners);
+                    let description = BadgeDescription(description.into_boxed_str());
+                    stored.descriptions.insert(description, names);
+                }
+
+                future::ready(Ok(()))
+            })
+            .await
+            .context("failed to fetch badge name")?;
+
+        Ok(stored)
     }
 
     pub async fn fetch_medal_rarities(&self) -> Result<MedalRarities> {
-        //         let mut conn = self
-        //             .acquire()
-        //             .await
-        //             .context("failed to acquire connection to fetch medal rarities")?;
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to fetch medal rarities")?;
 
-        //         let query = sqlx::query!(
-        //             r#"
-        // SELECT
-        //   id,
-        //   frequency,
-        //   count
-        // FROM
-        //   MedalRarity"#
-        //         );
+        let query = sqlx::query!(
+            r#"
+        SELECT
+          `Medal_ID` as id,
+          `Frequency` as frequency,
+          `Count_Achieved_By` as count
+        FROM
+          Medals_Data"#
+        );
 
-        //         query
-        //             .fetch(conn.deref_mut())
-        //             .map_ok(|row| (row.id as u16, row.count as u32, row.frequency))
-        //             .try_collect()
-        //             .await
-        //             .context("failed to fetch all medal rarities")
-
-        Ok(Default::default())
+        query
+            .fetch(conn.deref_mut())
+            .map_ok(|row| {
+                (
+                    row.id as u16,
+                    row.count.unwrap_or(0) as u32,
+                    row.frequency.unwrap_or(0.0),
+                )
+            })
+            .try_collect()
+            .await
+            .context("failed to fetch all medal rarities")
     }
 
     pub async fn fetch_medal_ids(&self) -> Result<HashSet<u16, IntHasher>> {
-        //         let mut conn = self
-        //             .acquire()
-        //             .await
-        //             .context("failed to acquire connection to fetch medal ids")?;
+        let mut conn = self
+            .acquire()
+            .await
+            .context("failed to acquire connection to fetch medal ids")?;
 
-        //         let query = sqlx::query!(
-        //             r#"
-        // SELECT
-        //   medalid
-        // FROM
-        //   Medals"#
-        //         );
+        let query = sqlx::query!(
+            r#"
+        SELECT
+          `Medal_ID` as id
+        FROM
+          Medals_Data"#
+        );
 
-        //         query
-        //             .fetch(conn.deref_mut())
-        //             .map_ok(|row| row.medalid as u16)
-        //             .try_collect()
-        //             .await
-        //             .context("failed to fetch all medal ids")
-
-        Ok(Default::default())
+        query
+            .fetch(conn.deref_mut())
+            .map_ok(|row| row.id as u16)
+            .try_collect()
+            .await
+            .context("failed to fetch all medal ids")
     }
 }
