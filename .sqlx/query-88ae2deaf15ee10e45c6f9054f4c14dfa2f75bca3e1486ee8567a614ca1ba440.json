@@ -1,16 +1,16 @@
 {
   "db_name": "MySQL",
-  "query": "\nSELECT \n  medalid \nFROM \n  Medals",
+  "query": "\n        SELECT\n          `Medal_ID` as id\n        FROM\n          Medals_Data",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "medalid",
+        "name": "id",
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 5
+          "max_size": 4
         }
       }
     ],
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "933e028460ee44d3bf5472e02628e6fde92937082a997df813e5fa40272028fb"
+  "hash": "88ae2deaf15ee10e45c6f9054f4c14dfa2f75bca3e1486ee8567a614ca1ba440"
 }

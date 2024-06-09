@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            INSERT INTO `Medals_Data` (\n              `Medal_ID`, `Name`, `Link`, `Description`,\n              `Gamemode`, `Grouping`, `Instructions`,\n              `Ordering`\n            )\n            VALUES\n              (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY\n            UPDATE\n              `Medal_ID` = VALUES(`Medal_ID`),\n              `Name` = VALUES(`Name`),\n              `Link` = VALUES(`Link`),\n              `Description` = VALUES(`Description`),\n              `Gamemode` = VALUES(`Gamemode`),\n              `Grouping` = VALUES(`Grouping`),\n              `Instructions` = VALUES(`Instructions`),\n              `Ordering` = VALUES(`Ordering`)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "4a63642abba6eb8c5ec297dbc8324ce906456820fbe104d81c0f0a52d49ad073"
+}

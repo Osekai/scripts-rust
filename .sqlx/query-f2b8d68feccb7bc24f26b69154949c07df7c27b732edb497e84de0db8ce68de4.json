@@ -1,0 +1,36 @@
+{
+  "db_name": "MySQL",
+  "query": "\n            SELECT\n              `Name` as name, \n              `Image_URL` as image_url \n            FROM\n              `Badges_Data`",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 400
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "image_url",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 224,
+          "max_size": 400
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "f2b8d68feccb7bc24f26b69154949c07df7c27b732edb497e84de0db8ce68de4"
+}

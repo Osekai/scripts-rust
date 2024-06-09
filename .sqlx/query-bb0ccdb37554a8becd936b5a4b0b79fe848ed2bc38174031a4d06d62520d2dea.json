@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nUPDATE\n  `Medals_Data`\nSET\n  `Frequency` = ?,\n  `Count_Achieved_By` = ?\nWHERE\n  `Medal_ID` = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "bb0ccdb37554a8becd936b5a4b0b79fe848ed2bc38174031a4d06d62520d2dea"
+}

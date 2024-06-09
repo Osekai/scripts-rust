@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\nSELECT \n  id, \n  frequency, \n  count \nFROM \n  MedalRarity",
+  "query": "\n        SELECT\n          `Medal_ID` as id,\n          `Frequency` as frequency,\n          `Count_Achieved_By` as count\n        FROM\n          Medals_Data",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
           "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 11
+          "max_size": 4
         }
       },
       {
@@ -18,7 +18,7 @@
         "name": "frequency",
         "type_info": {
           "type": "Float",
-          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "flags": "",
           "char_set": 63,
           "max_size": 12
         }
@@ -28,9 +28,9 @@
         "name": "count",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "flags": "",
           "char_set": 63,
-          "max_size": 11
+          "max_size": 10
         }
       }
     ],
@@ -39,9 +39,9 @@
     },
     "nullable": [
       false,
-      false,
-      false
+      true,
+      true
     ]
   },
-  "hash": "86e83005db0e15c9591245a3afd0fd1538dea171e502cc3ff510516dba3fc584"
+  "hash": "07c8c4ded41610d5e3f4f156086989164d774f7cd496537db09a6613fc26b1ac"
 }

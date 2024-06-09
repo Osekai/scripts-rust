@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\nSELECT \n  id \nFROM \n  Ranking",
+  "query": "\n        SELECT\n          `ID` as id\n        FROM\n        Rankings_Users",
   "describe": {
     "columns": [
       {
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "b464fac2b59b90125cc373771f65ff9527481439a36f390dacfaaa3488088ea8"
+  "hash": "d0dc545c496b1f0a460f5a02f7d66068a549f5814da67e7f155f6562c24ab26b"
 }

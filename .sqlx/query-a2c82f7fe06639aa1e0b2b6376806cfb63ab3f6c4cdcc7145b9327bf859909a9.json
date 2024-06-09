@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\nSELECT \n  id \nFROM \n  Members",
+  "query": "\n        SELECT\n          `User_ID` as id\n        FROM\n          System_Users",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
           "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 15
+          "max_size": 11
         }
       }
     ],
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "11a8020ae937b6f710b9fb5dd9dbd44486b3e71414732c19e6aa64b821632874"
+  "hash": "a2c82f7fe06639aa1e0b2b6376806cfb63ab3f6c4cdcc7145b9327bf859909a9"
 }

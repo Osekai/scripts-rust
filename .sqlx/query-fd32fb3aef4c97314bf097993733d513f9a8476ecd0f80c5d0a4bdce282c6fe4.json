@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nUPDATE \n  Rankings_Script_History\nSET \n  `Count_Current` = ?, \n  `Count_Total` = ?, \n  `Elapsed_Seconds` = ?, \n  `Elapsed_Last_Update` = NOW()\nWHERE\n  `ID` = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "fd32fb3aef4c97314bf097993733d513f9a8476ecd0f80c5d0a4bdce282c6fe4"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n        INSERT INTO `Badges_Data` (\n          `Name`, `Image_URL`\n        )\n        VALUES\n          (?, ?)\n        ON DUPLICATE KEY UPDATE\n          `Name` = `Name`",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "864649ccdb5c40d9cf1dcb8fa114692062c3007bb54a2bcf95c73e61b4fcbafe"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\nINSERT INTO \n  Rankings_Script_History (\n    `ID`, \n    `Type`, \n    `Time`, \n    `Count_Current`, \n    `Count_Total`, \n    `Elapsed_Seconds`, \n    `Elapsed_Last_Update` \n) VALUES (?, ?, ?, ?, ?, ?, NOW())\nON DUPLICATE KEY UPDATE\n  `Count_Current` = VALUES(`Count_Current`), \n  `Count_Total` = VALUES(`Count_Total`), \n  `Elapsed_Seconds` = VALUES(`Elapsed_Seconds`), \n  `Elapsed_Last_Update` = VALUES(`Elapsed_Last_Update`)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "67f923e10eb70e82eee17d5d4335767a17d229d50570ce5993dcf543a9784ea7"
+}
