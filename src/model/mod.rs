@@ -1,5 +1,5 @@
 pub use self::{
-    badge::{BadgeEntry, BadgeKey, Badges, SlimBadge},
+    badge::{BadgeDescription, BadgeImageUrl, BadgeName, BadgeOwner, Badges},
     progress::{Finish, Progress},
     ranking::{RankingUser, RankingsIter},
     rarity::{MedalRarities, MedalRarityEntry},

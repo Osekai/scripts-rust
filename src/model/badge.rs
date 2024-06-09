@@ -1,10 +1,8 @@
 use std::{
+    borrow::{Borrow, Cow},
     cmp::Ordering,
-    collections::{
-        hash_map::{Iter, IterMut},
-        HashMap, HashSet,
-    },
-    fmt::{Display, Formatter, Result as FmtResult},
+    collections::{hash_map::Entry, HashMap, HashSet},
+    hash::{Hash, Hasher},
     mem,
 };
 
@@ -13,104 +11,187 @@ use time::OffsetDateTime;
 
 use crate::util::IntHasher;
 
-// Different badges may have the same description so we
-// use the image url as key instead.
-//
-// See github issue #1
-#[derive(Eq, PartialEq, Hash)]
-pub struct BadgeKey {
-    pub image_url: Box<str>,
+#[derive(PartialEq, Eq, Hash)]
+pub struct BadgeName(pub Box<str>);
+
+impl Borrow<str> for BadgeName {
+    fn borrow(&self) -> &str {
+        self.0.as_ref()
+    }
 }
 
-pub struct BadgeEntry {
-    pub description: Box<str>,
-    pub id: Option<u32>,
+pub struct BadgeImageUrl(pub Box<str>);
+
+#[derive(PartialEq, Eq, Hash)]
+pub struct BadgeDescription(pub Box<str>);
+
+impl Borrow<str> for BadgeDescription {
+    fn borrow(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+pub struct BadgeOwner {
+    pub user_id: u32,
     pub awarded_at: OffsetDateTime,
-    pub users: BadgeOwners,
+}
+
+impl PartialEq for BadgeOwner {
+    fn eq(&self, other: &Self) -> bool {
+        self.user_id == other.user_id
+    }
+}
+
+impl Eq for BadgeOwner {}
+
+impl Hash for BadgeOwner {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.user_id.hash(state);
+    }
+}
+
+type BadgeOwners = HashSet<BadgeOwner, IntHasher>;
+
+struct PendingImageUrl<'a>(Cow<'a, str>);
+
+impl PendingImageUrl<'_> {
+    /// Returns `Err` if there is no `/` or `.` after the `/`.
+    fn name(&self, buf: &mut String) -> Result<(), ()> {
+        let (name_raw, _) = self
+            .0
+            .rsplit_once('/')
+            .and_then(|(_, file)| file.rsplit_once('.'))
+            .ok_or(())?;
+
+        buf.clear();
+
+        let chars = name_raw.chars().map(|ch| match ch {
+            '-' | '_' => ' ',
+            _ => ch,
+        });
+
+        buf.extend(chars);
+
+        Ok(())
+    }
+}
+
+impl<'a> From<PendingImageUrl<'a>> for BadgeImageUrl {
+    fn from(pending: PendingImageUrl<'a>) -> Self {
+        let image_url = match pending.0 {
+            Cow::Borrowed(image_url) => Box::from(image_url),
+            Cow::Owned(image_url) => image_url.into_boxed_str(),
+        };
+
+        Self(image_url)
+    }
 }
 
 #[derive(Default)]
 pub struct Badges {
-    inner: HashMap<BadgeKey, BadgeEntry>,
+    pub names: HashMap<BadgeName, BadgeImageUrl>,
+    /// Different badges might have the same description but owners of the same
+    /// badge don't necessarily have the same description.
+    pub descriptions: HashMap<BadgeDescription, HashMap<BadgeName, BadgeOwners>>,
 }
 
 impl Badges {
     pub fn with_capacity(capacity: usize) -> Self {
-        let inner = HashMap::with_capacity(capacity);
-
-        Self { inner }
+        Self {
+            names: HashMap::with_capacity(capacity),
+            descriptions: HashMap::with_capacity(capacity),
+        }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
+    pub fn push(&mut self, user_id: u32, original: &mut Badge, name_buf: &mut String) {
+        // Extract the image url.
+        let image_url = match original.image_url.split_once('?') {
+            Some((image_url, _)) => PendingImageUrl(Cow::Borrowed(image_url)),
+            None => PendingImageUrl(Cow::Owned(mem::take(&mut original.image_url))),
+        };
+
+        // Extract the name from the image url.
+        if image_url.name(name_buf).is_err() {
+            warn!(
+                "Invalid name for badge with image url `{}`",
+                original.image_url
+            );
+
+            return;
+        }
+
+        // If it's a new name, add it as entry.
+        if !self.names.contains_key(name_buf.as_str()) {
+            let name = Box::from(name_buf.as_str());
+            self.names
+                .insert(BadgeName(name), BadgeImageUrl::from(image_url));
+        }
+
+        let owner = BadgeOwner {
+            user_id,
+            awarded_at: original.awarded_at,
+        };
+
+        if let Some(entries) = self.descriptions.get_mut(original.description.as_str()) {
+            // The description already has an entry.
+            if let Some(owners) = entries.get_mut(name_buf.as_str()) {
+                // The name already has an entry.
+                owners.insert(owner);
+            } else {
+                // Seeing the name for that description for the first time.
+                // Adding new entry.
+                let mut owners = HashSet::default();
+                owners.insert(owner);
+                let name = BadgeName(Box::from(name_buf.as_str()));
+                entries.insert(name, owners);
+            }
+        } else {
+            // Seeing that description for the first time. Adding new entry.
+            let mut owners = HashSet::default();
+            owners.insert(owner);
+            let name = BadgeName(Box::from(name_buf.as_str()));
+            let mut entries = HashMap::default();
+            entries.insert(name, owners);
+            let description =
+                BadgeDescription(mem::take(&mut original.description).into_boxed_str());
+            self.descriptions.insert(description, entries);
+        }
     }
 
     pub fn len(&self) -> usize {
-        self.inner.len()
+        self.descriptions
+            .values()
+            .flat_map(HashMap::values)
+            .map(HashSet::len)
+            .sum()
     }
 
-    pub fn insert(&mut self, user_id: u32, badge: &mut Badge) {
-        let image_url = if let Some(idx) = badge.image_url.find('?') {
-            Box::from(&badge.image_url[..idx])
-        } else {
-            mem::take(&mut badge.image_url).into_boxed_str()
-        };
-
-        let key = BadgeKey { image_url };
-
-        let entry = self.inner.entry(key).or_insert_with(|| BadgeEntry {
-            description: mem::take(&mut badge.description).into_boxed_str(),
-            awarded_at: badge.awarded_at,
-            users: BadgeOwners::default(),
-            id: None,
-        });
-
-        entry.users.insert(user_id);
+    pub fn is_empty(&self) -> bool {
+        self.descriptions.is_empty()
     }
 
-    pub fn iter(&self) -> Iter<'_, BadgeKey, BadgeEntry> {
-        self.inner.iter()
-    }
+    pub fn merge(&mut self, mut other: Self) {
+        self.names.extend(other.names.drain());
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, BadgeKey, BadgeEntry> {
-        self.inner.iter_mut()
-    }
-}
+        for (description, entries) in other.descriptions.drain() {
+            match self.descriptions.entry(description) {
+                Entry::Occupied(entry) => {
+                    let this = entry.into_mut();
 
-pub struct BadgeOwners(HashSet<u32, IntHasher>);
-
-impl BadgeOwners {
-    fn insert(&mut self, user_id: u32) {
-        self.0.insert(user_id);
-    }
-
-    pub fn extend(&mut self, user_ids: &[u32]) {
-        self.0.extend(user_ids);
-    }
-}
-
-impl Default for BadgeOwners {
-    fn default() -> Self {
-        Self(HashSet::with_hasher(IntHasher))
-    }
-}
-
-impl Display for BadgeOwners {
-    #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("[")?;
-
-        let mut iter = self.0.iter();
-
-        if let Some(elem) = iter.next() {
-            Display::fmt(elem, f)?;
-
-            for elem in iter {
-                write!(f, ",{elem}")?;
+                    for (name, owners) in entries {
+                        match this.entry(name) {
+                            Entry::Occupied(entry) => entry.into_mut().extend(owners),
+                            Entry::Vacant(entry) => {
+                                entry.insert(owners);
+                            }
+                        }
+                    }
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(entries);
+                }
             }
         }
-
-        f.write_str("]")
     }
 }
 

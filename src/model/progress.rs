@@ -1,9 +1,12 @@
 use serde::Serialize;
+use time::OffsetDateTime;
 
 use crate::{task::Task, util::Eta};
 
 #[derive(Serialize)]
 pub struct Progress {
+    #[serde(skip)]
+    pub start: OffsetDateTime,
     pub current: usize,
     pub total: usize,
     pub eta_seconds: Option<u64>,
@@ -14,7 +17,10 @@ impl Progress {
     pub const INTERVAL: usize = 100;
 
     pub fn new(total: usize, task: Task) -> Self {
+        let start = OffsetDateTime::now_utc();
+
         Self {
+            start,
             task,
             total,
             current: 0,
@@ -37,16 +43,15 @@ impl Progress {
 
 #[derive(Copy, Clone, Serialize)]
 pub struct Finish {
+    pub id: i64,
     pub requested_users: usize,
-    pub task: Task,
 }
 
 impl From<Progress> for Finish {
-    #[inline]
     fn from(progress: Progress) -> Self {
         Self {
+            id: progress.start.unix_timestamp(),
             requested_users: progress.total,
-            task: progress.task,
         }
     }
 }

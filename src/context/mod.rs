@@ -132,13 +132,15 @@ impl Context {
                         Err(err) => error!(?err, "Failed to fetch medal ids from DB"),
                     };
 
-                    self.handle_rarities_and_ranking(task, users, &medals, &mut db_handles)
-                        .await;
-
                     // Store medals if required
                     if task.medals() {
-                        db_handles.push(self.mysql.store_medals(medals));
+                        // Note that this call needs to happen before storing
+                        // rarities so that the DB table does not deadlock.
+                        self.mysql.store_medals(&medals).await;
                     }
+
+                    self.handle_rarities_and_ranking(task, users, &medals, &mut db_handles)
+                        .await;
                 }
                 Err(err) => error!(?err, "Failed to gather medals"),
             }
@@ -205,11 +207,11 @@ impl Context {
                 Err(err) => {
                     error!(?err, "Failed to fetch badges from DB");
 
-                    (false, Vec::new())
+                    (false, Badges::default())
                 }
             }
         } else {
-            (false, Vec::new())
+            (false, Badges::default())
         };
 
         if args.debug {
@@ -222,8 +224,11 @@ impl Context {
 
         let len = user_ids.len();
         let mut users = Vec::with_capacity(len);
-        let mut badges = Badges::with_capacity(10_000);
         let mut eta = Eta::default();
+
+        let badge_capacity = if check_badges { 10_000 } else { 0 };
+        let mut badges_incoming = Badges::with_capacity(badge_capacity);
+        let mut badge_name_buf = String::new();
 
         info!("Requesting {len} user(s)...");
 
@@ -252,7 +257,7 @@ impl Context {
             if check_badges {
                 if let OsuUser::Available(ref mut user) = user {
                     for badge in user.badges.iter_mut() {
-                        badges.insert(user_id, badge);
+                        badges_incoming.push(user.user_id, badge, &mut badge_name_buf);
                     }
                 }
             }
@@ -287,25 +292,10 @@ impl Context {
         }
 
         if check_badges {
-            for (badge_key, badge) in badges.iter_mut() {
-                let slim_badge = stored_badges
-                    .binary_search_by(|probe| {
-                        probe
-                            .description
-                            .cmp(&badge.description)
-                            .then_with(|| probe.image_url.cmp(&badge_key.image_url))
-                    })
-                    .ok()
-                    .and_then(|idx| stored_badges.get(idx));
-
-                if let Some(slim_badge) = slim_badge {
-                    badge.id = Some(slim_badge.id);
-                    badge.users.extend(&slim_badge.users);
-                }
-            }
+            badges_incoming.merge(stored_badges);
         }
 
-        (users, badges, progress)
+        (users, badges_incoming, progress)
     }
 
     async fn handle_rarities_and_ranking(
