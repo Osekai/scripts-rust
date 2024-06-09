@@ -315,7 +315,7 @@ WHERE
             Ok(())
         }
 
-        let res = inner(self, &medals).await;
+        let res = inner(self, medals).await;
         let _entered = info_span!("store_medals").entered();
 
         match res {
