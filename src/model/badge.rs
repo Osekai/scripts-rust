@@ -1,6 +1,5 @@
 use std::{
     borrow::{Borrow, Cow},
-    cmp::Ordering,
     collections::{hash_map::Entry, HashMap, HashSet},
     hash::{Hash, Hasher},
     mem,
@@ -192,37 +191,5 @@ impl Badges {
                 }
             }
         }
-    }
-}
-
-pub struct SlimBadge {
-    pub id: u32,
-    pub description: Box<str>,
-    pub users: Box<[u32]>,
-    pub image_url: Box<str>,
-}
-
-impl PartialEq for SlimBadge {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Eq for SlimBadge {}
-
-impl Ord for SlimBadge {
-    #[inline]
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.description
-            .cmp(&other.description)
-            .then_with(|| self.image_url.cmp(&other.image_url))
-    }
-}
-
-impl PartialOrd for SlimBadge {
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }

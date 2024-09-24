@@ -274,7 +274,7 @@ WHERE
                     instructions,
                 } = medal;
 
-                let link = icon_url.rsplit('/').next().unwrap_or(&icon_url);
+                let link = icon_url.rsplit('/').next().unwrap_or(icon_url);
 
                 let query = sqlx::query!(
                     r#"

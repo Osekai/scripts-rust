@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use rosu_v2::prelude::{Badge, MedalCompact, User, UserStatistics};
+use rosu_v2::prelude::{Badge, MedalCompact, UserExtended, UserStatistics};
 
 use super::MedalRarities;
 
@@ -48,7 +48,7 @@ pub struct UserFull {
 }
 
 impl UserFull {
-    pub fn new(std: User, tko: User, ctb: User, mna: User) -> Self {
+    pub fn new(std: UserExtended, tko: UserExtended, ctb: UserExtended, mna: UserExtended) -> Self {
         let badges = std.badges.unwrap_or_default().into_boxed_slice();
         let country_code = std.country_code.into_string().into_boxed_str();
         let maps_ranked = std.ranked_mapset_count.map_or(0, |count| count as u16);
