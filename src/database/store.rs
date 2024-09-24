@@ -274,6 +274,8 @@ WHERE
                     instructions,
                 } = medal;
 
+                let link = icon_url.rsplit('/').next().unwrap_or(&icon_url);
+
                 let query = sqlx::query!(
                     r#"
             INSERT INTO `Medals_Data` (
@@ -294,7 +296,7 @@ WHERE
               `Ordering` = VALUES(`Ordering`)"#,
                     id,
                     name.as_ref(),
-                    icon_url.as_ref(),
+                    link,
                     description.as_ref(),
                     mode.as_deref(),
                     grouping.as_ref(),
