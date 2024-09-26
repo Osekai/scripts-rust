@@ -61,7 +61,7 @@ impl Client {
                 .await
                 .context("failed to request user webpage")?;
 
-            fs::write("./peppy.html", &bytes).unwrap();
+            // fs::write("./peppy.html", &bytes).unwrap();
 
             Ok(bytes.into())
         }
