@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 #[derive(Deserialize)]
 pub struct ScrapedUser {
@@ -14,6 +14,16 @@ pub struct ScrapedMedal {
     pub grouping: Box<str>,
     pub ordering: u8,
     pub description: Box<str>,
+    #[serde(default, deserialize_with = "deser_mode")]
     pub mode: Option<Box<str>>,
     pub instructions: Option<Box<str>>,
+}
+
+fn deser_mode<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Box<str>>, D::Error> {
+    match Option::<&str>::deserialize(d) {
+        Ok(Some("fruits")) => Ok(Some(Box::from("catch"))),
+        Ok(Some(mode)) => Ok(Some(Box::from(mode))),
+        Ok(None) => Ok(None),
+        Err(err) => Err(err),
+    }
 }
