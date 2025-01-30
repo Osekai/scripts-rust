@@ -1792,9 +1792,9 @@ dependencies = [
 
 [[package]]
 name = "rosu-mods"
-version = "0.1.1"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3966ad347b6a8140feaa2424c947ada9b69d29f6966ef2590db34d456eb137be"
+checksum = "65892bec4e81b3931f3c0b3a646feff0daa78b22dff2b45b157c642f1be14b04"
 dependencies = [
  "serde",
 ]
@@ -1802,7 +1802,7 @@ dependencies = [
 [[package]]
 name = "rosu-v2"
 version = "0.9.0"
-source = "git+https://github.com/MaxOhn/rosu-v2?branch=next#9e76879408bd491878d7f0f9c570f8c025a4ee2c"
+source = "git+https://github.com/MaxOhn/rosu-v2?branch=lazer#8b151dcfb8ec7b7b2711cf29637cac77efd719d4"
 dependencies = [
  "bytes",
  "futures",
