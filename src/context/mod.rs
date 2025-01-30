@@ -4,6 +4,7 @@ use std::{
 };
 
 use eyre::{Context as _, Report, Result};
+use futures_util::{stream::FuturesUnordered, StreamExt as _};
 use rosu_v2::Osu;
 use tokio::{
     task::JoinHandle,
@@ -241,15 +242,13 @@ impl Context {
             }
         }
 
-        // Request osu! user data for all users for all modes.
-        // The core loop and very expensive.
-        for (user_id, i) in user_ids.into_iter().zip(1..) {
-            let mut user = match self.request_osu_user(user_id).await {
+        let mut handle_user_result = |user_id, res| {
+            let mut user = match res {
                 Ok(user) => user,
                 Err(err) => {
                     error!(err = ?Report::new(err), "Failed to request user {user_id} from osu!api");
 
-                    continue;
+                    return;
                 }
             };
 
@@ -263,21 +262,39 @@ impl Context {
             }
 
             users.push(user);
-            eta.tick();
+        };
 
-            if i % Progress::INTERVAL == 0 {
-                let remaining_time = eta.estimate(len - i);
-                info!("User progress: {i}/{len} | ETA: {remaining_time}");
+        let mut jobs = user_ids
+            .into_iter()
+            .zip(1..)
+            .map(|(user_id, i)| async move { (i, user_id, self.request_osu_user(user_id).await) });
 
-                if args.progress {
-                    progress.update(i, &eta);
+        let mut futures = FuturesUnordered::new();
 
-                    match self.handle_progress(&progress).await {
-                        Ok(_) => info!("Successfully handled progress"),
-                        Err(err) => error!(?err, "Failed to handle progress"),
-                    }
-                }
+        // Request osu! user data for all users for all modes.
+        // The core loop and very expensive.
+        while let Some(job) = jobs.next() {
+            const CONCURRENT_USERS: usize = 4;
+
+            while futures.len() >= CONCURRENT_USERS {
+                let Some((i, user_id, res)) = futures.next().await else {
+                    continue;
+                };
+
+                handle_user_result(user_id, res);
+
+                self.update_progress(i, len, args, &mut eta, &mut progress)
+                    .await;
             }
+
+            futures.push(job);
+        }
+
+        while let Some((i, user_id, res)) = futures.next().await {
+            handle_user_result(user_id, res);
+
+            self.update_progress(i, len, args, &mut eta, &mut progress)
+                .await;
         }
 
         info!("Finished requesting {len} users");
@@ -330,6 +347,33 @@ impl Context {
         // Store rarities if required
         if task.rarity() {
             db_handles.push(self.mysql.store_rarities(rarities));
+        }
+    }
+
+    async fn update_progress(
+        &self,
+        i: usize,
+        len: usize,
+        args: &Args,
+        eta: &mut Eta,
+        progress: &mut Progress,
+    ) {
+        eta.tick();
+
+        if i % Progress::INTERVAL != 0 {
+            return;
+        }
+
+        let remaining_time = eta.estimate(len - i);
+        info!("User progress: {i}/{len} | ETA: {remaining_time}");
+
+        if args.progress {
+            progress.update(i, &eta);
+
+            match self.handle_progress(&*progress).await {
+                Ok(_) => info!("Successfully handled progress"),
+                Err(err) => error!(?err, "Failed to handle progress"),
+            }
         }
     }
 }
