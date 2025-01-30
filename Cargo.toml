@@ -14,7 +14,7 @@ http = { version = "0.2" }
 hyper = { version = "0.14", default-features = false }
 hyper-rustls = { version = "0.24", default-features = false, features = ["http1", "tls12", "tokio-runtime", "webpki-tokio"] }
 rosu-v2 = { git = "https://github.com/MaxOhn/rosu-v2", branch = "lazer", default-features = false }
-scraper = { version = "0.20", default-features = false }
+scraper = { version = "0.22", default-features = false }
 self_update = { version = "0.39", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
