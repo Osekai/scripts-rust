@@ -1,7 +1,7 @@
 use std::{env, sync::OnceLock};
 
 use eyre::{Context as _, Result};
-use http::Uri;
+use hyper::Uri;
 
 use crate::{schedule::Schedule, util::Args};
 

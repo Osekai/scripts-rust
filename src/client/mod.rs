@@ -2,13 +2,16 @@ use std::{fs, time::Duration};
 
 use ::bytes::Bytes;
 use eyre::{Context as _, Result};
-use http::{HeaderValue, Uri};
+use http_body_util::{BodyExt, Collected, Full};
 use hyper::{
-    client::{connect::dns::GaiResolver, Client as HyperClient, HttpConnector},
-    header::{CONTENT_TYPE, USER_AGENT},
-    Method, Request,
+    header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE, USER_AGENT},
+    Request, Uri,
 };
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
+use hyper_util::{
+    client::legacy::{connect::HttpConnector, Builder, Client as HyperClient},
+    rt::TokioExecutor,
+};
 use serde::Serialize;
 use serde_json::{Error as JsonError, Serializer as JsonSerializer};
 
@@ -17,31 +20,35 @@ use crate::{
     model::{Finish, Progress},
 };
 
-use self::bytes::BodyBytes;
-
-mod bytes;
-
-static MY_USER_AGENT: HeaderValue = HeaderValue::from_static(env!("CARGO_PKG_NAME"));
+static MY_USER_AGENT: HeaderValue = HeaderValue::from_static(concat!(
+    env!("CARGO_PKG_NAME"),
+    "/",
+    env!("CARGO_PKG_VERSION")
+));
 static FORM_URLENCODED: HeaderValue = HeaderValue::from_static("application/x-www-form-urlencoded");
 
-type InnerClient = HyperClient<HttpsConnector<HttpConnector<GaiResolver>>, BodyBytes>;
+type Body = Full<Bytes>;
 
 /// Client that makes all requests that do not go to the osu!api itself
 pub struct Client {
-    client: InnerClient,
+    client: HyperClient<HttpsConnector<HttpConnector>, Body>,
 }
 
 impl Client {
     pub fn new() -> Self {
-        let connector = HttpsConnectorBuilder::new()
-            .with_webpki_roots()
-            .https_or_http()
-            .enable_http1()
+        let crypto_provider = rustls::crypto::ring::default_provider();
+
+        let https = HttpsConnectorBuilder::new()
+            .with_provider_and_webpki_roots(crypto_provider)
+            .expect("Failed to configure https connector")
+            .https_only()
+            .enable_http2()
             .build();
 
-        let client = HyperClient::builder()
-            .pool_idle_timeout(Duration::from_secs(20)) // https://github.com/hyperium/hyper/issues/2136
-            .build(connector);
+        let client = Builder::new(TokioExecutor::new())
+            .pool_idle_timeout(Duration::from_secs(15)) // https://github.com/hyperium/hyper/issues/2136
+            .http2_only(true)
+            .build(https);
 
         Self { client }
     }
@@ -57,7 +64,7 @@ impl Client {
             let url = Uri::from_static("https://osu.ppy.sh/users/2/osu");
 
             let bytes = self
-                .send_get_request(&url)
+                .send_get_request(url)
                 .await
                 .context("failed to request user webpage")?;
 
@@ -87,21 +94,19 @@ impl Client {
         self.notify_webhook(content).await
     }
 
-    async fn send_get_request(&self, url: &Uri) -> Result<Bytes> {
+    async fn send_get_request(&self, url: Uri) -> Result<Bytes> {
         trace!("Sending GET request to url {url}");
 
-        let req = Request::builder()
-            .uri(url)
-            .method(Method::GET)
+        let req = Request::get(&url)
             .header(USER_AGENT, &MY_USER_AGENT)
-            .body(BodyBytes::default())
-            .context("failed to build GET request")?;
+            .body(Body::default())
+            .context("failed to create GET request")?;
 
         let response = self
             .client
             .request(req)
             .await
-            .context("failed to send GET request")?;
+            .context("failed to fetch GET response")?;
 
         let status = response.status();
 
@@ -110,9 +115,12 @@ impl Client {
             "failed with status code {status} when requesting url {url}"
         );
 
-        hyper::body::to_bytes(response.into_body())
+        response
+            .into_body()
+            .collect()
             .await
-            .context("failed to extract response bytes")
+            .context("failed to collect response bytes")
+            .map(Collected::to_bytes)
     }
 
     async fn notify_webhook(&self, content: String) -> Result<()> {
@@ -125,22 +133,22 @@ impl Client {
 
         let encode = UrlEncode { content };
 
-        let encoded = serde_urlencoded::to_string(&encode)
-            .context("failed to urlencode webhook notification")?;
+        let body = serde_urlencoded::to_string(&encode)
+            .context("failed to urlencode webhook notification")?
+            .into_bytes();
 
-        let req = Request::builder()
-            .method(Method::POST)
-            .uri(&Config::get().webhook_url)
+        let req = Request::post(&Config::get().webhook_url)
             .header(USER_AGENT, &MY_USER_AGENT)
             .header(CONTENT_TYPE, &FORM_URLENCODED)
-            .body(BodyBytes::from(encoded.into_bytes()))
+            .header(CONTENT_LENGTH, body.len())
+            .body(Full::from(body))
             .context("failed to build POST request")?;
 
         let response = self
             .client
             .request(req)
             .await
-            .context("failed to send POST request")?;
+            .context("failed to create POST request")?;
 
         let status = response.status();
 
