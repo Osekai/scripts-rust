@@ -1435,7 +1435,7 @@ checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
 
 [[package]]
 name = "osekai-scripts"
-version = "3.0.2"
+version = "3.1.0"
 dependencies = [
  "bytes",
  "clap",
