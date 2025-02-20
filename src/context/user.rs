@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, error::Error};
 
 use eyre::Report;
 use rosu_v2::{
@@ -31,7 +31,7 @@ impl Context {
                     // Retry on error "http2 error: connection error received: not a result of an error"
                     // see https://github.com/hyperium/hyper/issues/2500
                     Err(OsuError::Request { source })
-                        if source.message().to_string().starts_with("http2 error") =>
+                        if source.source().is_some_and(|err| err.to_string().starts_with("http2 error")) =>
                     {
                         self.osu.user(user_id).mode($mode).await?
                     }
