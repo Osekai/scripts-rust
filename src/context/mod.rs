@@ -264,16 +264,16 @@ impl Context {
             users.push(user);
         };
 
-        let mut jobs = user_ids
+        let jobs = user_ids
             .into_iter()
             .zip(1..)
-            .map(|(user_id, i)| async move { (i, user_id, self.request_osu_user(user_id).await) });
+            .map(async |(user_id, i)| (i, user_id, self.request_osu_user(user_id).await));
 
         let mut futures = FuturesUnordered::new();
 
         // Request osu! user data for all users for all modes.
         // The core loop and very expensive.
-        while let Some(job) = jobs.next() {
+        for job in jobs {
             const CONCURRENT_USERS: usize = 4;
 
             while futures.len() >= CONCURRENT_USERS {
@@ -368,7 +368,7 @@ impl Context {
         info!("User progress: {i}/{len} | ETA: {remaining_time}");
 
         if args.progress {
-            progress.update(i, &eta);
+            progress.update(i, eta);
 
             match self.handle_progress(&*progress).await {
                 Ok(_) => info!("Successfully handled progress"),
