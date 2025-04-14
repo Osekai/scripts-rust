@@ -95,6 +95,46 @@ WHERE
         Ok(())
     }
 
+    pub async fn update_usernames(&self, users: &[OsuUser]) {
+        async fn inner(db: &Database, users: &[OsuUser]) -> Result<()> {
+            let mut tx = db
+                .begin()
+                .await
+                .context("failed to begin transaction for System_Users update")?;
+
+            for user in users {
+                let OsuUser::Available(ref user) = user else {
+                    continue;
+                };
+
+                let query = sqlx::query!(
+                    r#"UPDATE `System_Users` SET `Name` = ? WHERE `User_ID` = ?"#,
+                    user.username,
+                    user.user_id,
+                );
+
+                query
+                    .execute(tx.deref_mut())
+                    .await
+                    .context("failed to execute System_Users update")?;
+            }
+
+            tx.commit()
+                .await
+                .context("failed to commit System_Users transaction")?;
+
+            Ok(())
+        }
+
+        let res = inner(self, users).await;
+        let _entered = info_span!("update_usernames").entered();
+
+        match res {
+            Ok(_) => info!("Successfully updated usernames"),
+            Err(err) => error!(?err, "Failed to update usernames"),
+        }
+    }
+
     // This method is async instead of returning a JoinHandle because the
     // caller can only provide users by reference at this point.
     pub async fn store_user_medals(&self, users: &[OsuUser]) {

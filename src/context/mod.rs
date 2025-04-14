@@ -112,8 +112,10 @@ impl Context {
             db_handles.push(self.mysql.store_badges(badges));
         }
 
-        if task.medals() && !users.is_empty() {
-            self.mysql.store_user_medals(&users).await;
+        if !users.is_empty() {
+            let user_medals = self.mysql.store_user_medals(&users);
+            let usernames = self.mysql.update_usernames(&users);
+            tokio::join!(user_medals, usernames);
         }
 
         // If badges are all that was required then we're already done
