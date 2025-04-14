@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT\n          `ID` as id\n        FROM\n        Rankings_Users",
+  "query": "SELECT `ID` as id FROM Rankings_Users",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,6 @@
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
-          "char_set": 63,
           "max_size": 11
         }
       }
@@ -21,5 +20,5 @@
       false
     ]
   },
-  "hash": "d0dc545c496b1f0a460f5a02f7d66068a549f5814da67e7f155f6562c24ab26b"
+  "hash": "b7af5b604b46ba43ac44a13ecfa18c0d27a92cb7c6e39fa305626cf156ac7de3"
 }

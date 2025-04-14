@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n        SELECT\n          `User_ID` as id\n        FROM\n          System_Users",
+  "query": "\n            SELECT `First_Achieved_User_ID` as id\n            FROM Medals_Configuration\n            WHERE `First_Achieved_User_ID` IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -8,7 +8,7 @@
         "name": "id",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
+          "flags": "",
           "max_size": 11
         }
       }
@@ -17,8 +17,8 @@
       "Right": 0
     },
     "nullable": [
-      false
+      true
     ]
   },
-  "hash": "a2c82f7fe06639aa1e0b2b6376806cfb63ab3f6c4cdcc7145b9327bf859909a9"
+  "hash": "3acc1118db1ae762f0b67cd13a83b25eb82ada8e1a432da7b0c4d77b065df216"
 }
