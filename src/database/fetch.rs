@@ -24,13 +24,7 @@ impl Database {
             .await
             .context("failed to acquire connection to fetch ranking ids")?;
 
-        let query = sqlx::query!(
-            r#"
-        SELECT
-          `ID` as id
-        FROM
-        Rankings_Users"#
-        );
+        let query = sqlx::query!(r#"SELECT `ID` as id FROM Rankings_Users"#);
 
         query
             .fetch(conn.deref_mut())
@@ -40,7 +34,24 @@ impl Database {
                 std::future::ready(Ok(()))
             })
             .await
-            .context("failed to fetch all ranking ids")?;
+            .context("failed to fetch Rankings_Users ids")?;
+
+        let query = sqlx::query!(
+            r#"
+            SELECT `First_Achieved_User_ID` as id
+            FROM Medals_Configuration
+            WHERE `First_Achieved_User_ID` IS NOT NULL"#
+        );
+
+        query
+            .fetch(conn.deref_mut())
+            .try_for_each(|row| {
+                user_ids.insert(row.id.unwrap_or(0) as u32);
+
+                std::future::ready(Ok(()))
+            })
+            .await
+            .context("failed to fetch Medals_Configuration ids")?;
 
         Ok(())
     }
