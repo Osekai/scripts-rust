@@ -1,11 +1,12 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
+use sqlx::QueryBuilder;
 use tokio::task::JoinHandle;
 
 use crate::model::{
     BadgeDescription, BadgeImageUrl, BadgeName, BadgeOwner, Badges, Finish, MedalRarities,
-    MedalRarityEntry, Progress, RankingUser, RankingsIter, ScrapedMedal,
+    MedalRarityEntry, OsuUser, Progress, RankingUser, RankingsIter, ScrapedMedal,
 };
 
 use super::Database;
@@ -92,6 +93,59 @@ WHERE
             .context("failed to execute Rankings_Script_History query")?;
 
         Ok(())
+    }
+
+    // This method is async instead of returning a JoinHandle because the
+    // caller can only provide users by reference at this point.
+    pub async fn store_user_medals(&self, users: &[OsuUser]) {
+        async fn inner(db: &Database, users: &[OsuUser]) -> Result<usize> {
+            let mut len = 0;
+
+            let mut tx = db
+                .begin()
+                .await
+                .context("failed to begin transaction for Rankings_Users_Medals")?;
+
+            for user in users {
+                let OsuUser::Available(ref user) = user else {
+                    continue;
+                };
+
+                let mut qb = QueryBuilder::new(
+                    "INSERT INTO `Rankings_Users_Medals` (`User_ID`, `Medal_ID`, `Achieved_At`) ",
+                );
+
+                let query = qb
+                    .push_values(user.medals.iter(), |mut b, medal| {
+                        b.push_bind(user.user_id)
+                            .push_bind(medal.medal_id)
+                            .push_bind(medal.achieved_at);
+                    })
+                    .push("ON DUPLICATE KEY UPDATE `Achieved_At` = VALUES(`Achieved_At`)")
+                    .build();
+
+                query
+                    .execute(tx.deref_mut())
+                    .await
+                    .context("failed to execute Rankings_Users_Medals query")?;
+
+                len += user.medals.len();
+            }
+
+            tx.commit()
+                .await
+                .context("failed to commit Rankings_Users_Medals transaction")?;
+
+            Ok(len)
+        }
+
+        let res = inner(self, users).await;
+        let _entered = info_span!("store_user_medals").entered();
+
+        match res {
+            Ok(len) => info!("Successfully stored {len} user medals"),
+            Err(err) => error!(?err, "Failed to store user medals"),
+        }
     }
 
     #[must_use]
