@@ -151,6 +151,10 @@ WHERE
                     continue;
                 };
 
+                if user.medals.is_empty() {
+                    continue;
+                }
+
                 let mut qb = QueryBuilder::new(
                     "REPLACE INTO `Rankings_Users_Medals` (`User_ID`, `Medal_ID`, `Achieved_At`) ",
                 );
