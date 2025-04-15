@@ -1,7 +1,7 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
-use sqlx::{Execute, QueryBuilder};
+use sqlx::QueryBuilder;
 use tokio::task::JoinHandle;
 
 use crate::model::{
@@ -163,10 +163,12 @@ WHERE
                     })
                     .build();
 
-                query
-                    .execute(tx.deref_mut())
-                    .await
-                    .context("failed to execute Rankings_Users_Medals query")?;
+                query.execute(tx.deref_mut()).await.with_context(|| {
+                    format!(
+                        "failed to execute Rankings_Users_Medals query user_id={}",
+                        user.user_id
+                    )
+                })?;
 
                 len += user.medals.len();
             }
