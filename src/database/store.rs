@@ -1,7 +1,7 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
-use sqlx::QueryBuilder;
+use sqlx::{Execute, QueryBuilder};
 use tokio::task::JoinHandle;
 
 use crate::model::{
@@ -152,7 +152,7 @@ WHERE
                 };
 
                 let mut qb = QueryBuilder::new(
-                    "INSERT INTO `Rankings_Users_Medals` (`User_ID`, `Medal_ID`, `Achieved_At`) ",
+                    "REPLACE INTO `Rankings_Users_Medals` (`User_ID`, `Medal_ID`, `Achieved_At`) ",
                 );
 
                 let query = qb
@@ -161,7 +161,6 @@ WHERE
                             .push_bind(medal.medal_id)
                             .push_bind(medal.achieved_at);
                     })
-                    .push("ON DUPLICATE KEY UPDATE `Achieved_At` = VALUES(`Achieved_At`)")
                     .build();
 
                 query
