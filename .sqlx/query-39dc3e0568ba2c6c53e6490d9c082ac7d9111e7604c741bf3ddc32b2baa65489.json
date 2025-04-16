@@ -1,0 +1,54 @@
+{
+  "db_name": "MySQL",
+  "query": "\nSELECT user_id, description, awarded_at, name\nFROM\n    (SELECT\n        `Badge_ID` AS badge_id, \n        `User_ID` AS user_id, \n        `Description` AS description, \n        `Date_Awarded` AS awarded_at \n    FROM `Badges_Users`) AS u\n    JOIN\n    (SELECT `ID` AS badge_id, `Name` AS name FROM `Badges_Data`) AS n\n    USING (badge_id)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
+          "max_size": 11
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "description",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "max_size": 8000
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "awarded_at",
+        "type_info": {
+          "type": "Datetime",
+          "flags": "BINARY",
+          "max_size": 76
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | PRIMARY_KEY | NO_DEFAULT_VALUE",
+          "max_size": 400
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "39dc3e0568ba2c6c53e6490d9c082ac7d9111e7604c741bf3ddc32b2baa65489"
+}

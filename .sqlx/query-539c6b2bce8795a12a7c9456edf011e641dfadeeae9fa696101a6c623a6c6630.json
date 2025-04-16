@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "DELETE FROM `Badge_Name`",
+  "query": "DELETE FROM `Badges_Users`",
   "describe": {
     "columns": [],
     "parameters": {
@@ -8,5 +8,5 @@
     },
     "nullable": []
   },
-  "hash": "b8d49eb5ebb434b92d58e4b8ce0deecd0bef56b4285e4f1a578b8a59d56c2b67"
+  "hash": "539c6b2bce8795a12a7c9456edf011e641dfadeeae9fa696101a6c623a6c6630"
 }

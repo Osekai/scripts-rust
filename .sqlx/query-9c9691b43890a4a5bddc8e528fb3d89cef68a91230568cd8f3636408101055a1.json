@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n            SELECT\n              `Name` as name, \n              `Image_URL` as image_url \n            FROM\n              `Badges_Data`",
+  "query": "SELECT `Name` AS name, `Image_URL` AS image_url FROM `Badges_Data`",
   "describe": {
     "columns": [
       {
@@ -17,7 +17,7 @@
         "name": "image_url",
         "type_info": {
           "type": "VarString",
-          "flags": "",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "max_size": 400
         }
       }
@@ -27,8 +27,8 @@
     },
     "nullable": [
       false,
-      true
+      false
     ]
   },
-  "hash": "f2b8d68feccb7bc24f26b69154949c07df7c27b732edb497e84de0db8ce68de4"
+  "hash": "9c9691b43890a4a5bddc8e528fb3d89cef68a91230568cd8f3636408101055a1"
 }
