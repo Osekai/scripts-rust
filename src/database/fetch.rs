@@ -84,24 +84,14 @@ impl Database {
             .await
             .context("failed to acquire connection to fetch badges")?;
 
-        let query = sqlx::query!(
-            r#"
-            SELECT
-              `Name` as name, 
-              `Image_URL` as image_url 
-            FROM
-              `Badges_Data`"#
-        );
+        let query =
+            sqlx::query!("SELECT `Name` AS name, `Image_URL` AS image_url FROM `Badges_Data`");
 
         let names_fut = query
             .fetch(conn.deref_mut())
             .map_ok(|row| {
                 let name = row.name.into_boxed_str();
-
-                let image_url = row
-                    .image_url
-                    .map(String::into_boxed_str)
-                    .unwrap_or_default();
+                let image_url = row.image_url.into_boxed_str();
 
                 (BadgeName(name), BadgeImageUrl(image_url))
             })
@@ -114,13 +104,17 @@ impl Database {
 
         let query = sqlx::query!(
             r#"
-        SELECT
-          `Name` as name, 
-          `User_ID` as user_id, 
-          `Description` as description, 
-          `Date_Awarded` as awarded_at 
-        FROM 
-          `Badge_Name`"#
+SELECT user_id, description, awarded_at, name
+FROM
+    (SELECT
+        `Badge_ID` AS badge_id, 
+        `User_ID` AS user_id, 
+        `Description` AS description, 
+        `Date_Awarded` AS awarded_at 
+    FROM `Badges_Users`) AS u
+    JOIN
+    (SELECT `ID` AS badge_id, `Name` AS name FROM `Badges_Data`) AS n
+    USING (badge_id)"#
         );
 
         query
@@ -157,7 +151,7 @@ impl Database {
                 future::ready(Ok(()))
             })
             .await
-            .context("failed to fetch badge name")?;
+            .context("failed to fetch badges users")?;
 
         Ok(stored)
     }

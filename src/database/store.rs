@@ -1,4 +1,4 @@
-use std::{num::NonZeroU32, ops::DerefMut};
+use std::{collections::HashMap, num::NonZeroU32, ops::DerefMut};
 
 use eyre::{Context as _, Result};
 use sqlx::QueryBuilder;
@@ -482,10 +482,26 @@ WHERE
                 .await
                 .context("failed to begin transaction for badges")?;
 
-            sqlx::query!("DELETE FROM `Badge_Name`")
+            sqlx::query!("DELETE FROM `Badges_Users`")
                 .execute(tx.deref_mut())
                 .await
                 .context("failed to delete rows in Badges_Users")?;
+
+            // Maps badge names to badge ids
+            let mut indices = HashMap::new();
+            // The badge id for the next new badge
+            let mut index = 0;
+
+            let mut badge_id = |name: &str| match indices.get(name) {
+                Some(id) => *id,
+                None => {
+                    let id = index;
+                    index += 1;
+                    indices.insert(name.to_owned(), id);
+
+                    id
+                }
+            };
 
             for (BadgeDescription(description), entries) in badges.descriptions.iter() {
                 for (BadgeName(name), owners) in entries.iter() {
@@ -495,14 +511,13 @@ WHERE
                             awarded_at,
                         } = owner;
 
+                        let badge_id = badge_id(name);
+
                         let query = sqlx::query!(
-                            r#"
-                INSERT INTO `Badge_Name` (
-                  `Name`, `User_ID`, `Description`, `Date_Awarded`
-                )
-                VALUES
-                  (?, ?, ?, ?)"#,
-                            name.as_ref(),
+                            "
+INSERT INTO `Badges_Users` (`Badge_ID`, `User_ID`, `Description`, `Date_Awarded`)
+VALUES (?, ?, ?, ?)",
+                            badge_id,
                             user_id,
                             description.as_ref(),
                             awarded_at,
@@ -511,21 +526,22 @@ WHERE
                         query
                             .execute(tx.deref_mut())
                             .await
-                            .context("failed to execute badge name query")?;
+                            .context("failed to execute badges users query")?;
                     }
                 }
             }
 
+            sqlx::query!("DELETE FROM `Badges_Data`")
+                .execute(tx.deref_mut())
+                .await
+                .context("failed to delete rows in Badges_Data")?;
+
             for (BadgeName(name), BadgeImageUrl(image_url)) in badges.names.iter() {
+                let id = badge_id(name);
+
                 let query = sqlx::query!(
-                    r#"
-        INSERT INTO `Badges_Data` (
-          `Name`, `Image_URL`
-        )
-        VALUES
-          (?, ?)
-        ON DUPLICATE KEY UPDATE
-          `Name` = `Name`"#,
+                    "INSERT INTO `Badges_Data` (`ID`, `Name`, `Image_URL`) VALUES (?, ?, ?)",
+                    id,
                     name.as_ref(),
                     image_url.as_ref(),
                 );
