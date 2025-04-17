@@ -94,7 +94,7 @@ jobs:
         - build: linux
           os: ubuntu-22.04
           target: x86_64-unknown-linux-musl
-        - build: win-msvc
+        - build: windows
           os: windows-latest
           target: x86_64-pc-windows-msvc
 
@@ -112,12 +112,6 @@ jobs:
       shell: bash
       run: |
         cargo build --verbose --release
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          bin="target/release/osekai-scripts.exe"
-        else
-          bin="target/release/osekai-scripts"
-        fi
-        echo "BIN=$bin" >> $GITHUB_ENV
 
     - name: Determine archive name
       shell: bash
@@ -127,18 +121,18 @@ jobs:
 
     - name: Build archive (Windows)
       shell: bash
-      if: matrix.os == 'windows-latest'
+      if: matrix.build == 'windows'
       run: |
-        zip -9r "$ARCHIVE.zip" "$BIN"
+        7z a "$ARCHIVE.zip" "target/release/osekai-scripts.exe"
         certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
         echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
         echo "ASSET_SUM=$ARCHIVE.zip.sha256" >> $GITHUB_ENV
 
     - name: Build archive (Unix)
       shell: bash
-      if: matrix.os != 'windows-latest'
+      if: matrix.build == 'linux'
       run: |
-        tar caf "$ARCHIVE.tar.gz" "$BIN"
+        tar -C target/release -czvf "$ARCHIVE.tar.gz" "osekai-scripts"
         shasum -a 256 "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"
         echo "ASSET=$ARCHIVE.tar.gz" >> $GITHUB_ENV
         echo "ASSET_SUM=$ARCHIVE.tar.gz.sha256" >> $GITHUB_ENV

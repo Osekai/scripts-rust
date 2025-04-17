@@ -96,7 +96,7 @@ fn update() -> Result<Status> {
     use eyre::WrapErr;
 
     #[cfg(target_os = "windows")]
-    let target = "x86_64-pc-windows-gnu";
+    let target = "x86_64-pc-windows-msvc";
 
     #[cfg(target_os = "linux")]
     let target = "x86_64-unknown-linux-musl";
