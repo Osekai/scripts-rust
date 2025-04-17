@@ -123,7 +123,7 @@ jobs:
       shell: bash
       if: matrix.build == 'windows'
       run: |
-        7z a "$ARCHIVE.zip" "target/release/osekai-scripts.exe"
+        7z a "$ARCHIVE.zip" "./target/release/osekai-scripts.exe"
         certutil -hashfile "$ARCHIVE.zip" SHA256 > "$ARCHIVE.zip.sha256"
         echo "ASSET=$ARCHIVE.zip" >> $GITHUB_ENV
         echo "ASSET_SUM=$ARCHIVE.zip.sha256" >> $GITHUB_ENV
