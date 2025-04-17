@@ -58,7 +58,7 @@ impl Args {
 }
 
 #[derive(Parser)]
-#[command(author, about = DESCRIPTION)]
+#[command(author, about = DESCRIPTION, version)]
 struct ArgsCli {
     #[arg(short, long, value_name = "USER_ID")]
     /// Additional user id to check (repeatable)
@@ -121,7 +121,8 @@ fn update() -> Result<Status> {
     panic!("Updating is currently only supported on Windows and Linux.")
 }
 
-static DESCRIPTION: &str = r#"
+static DESCRIPTION: &str = concat!(
+    r#"
 #################################################
 ##  ,-----.               ,--.           ,--.  ##
 ## '  .-.  ' ,---.  ,---. |  |,-. ,--,--.`--'  ##
@@ -140,4 +141,8 @@ Task values:
   - ranking: Process all users and upload them.
   - badges: Collect badges of all available users and upload them.
   - default: medals | ranking | badges
-  - full: medals | ranking | badges | rarity"#;
+  - full: medals | ranking | badges | rarity
+
+Version: "#,
+    env!("CARGO_PKG_VERSION")
+);
