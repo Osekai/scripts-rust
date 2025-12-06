@@ -4,7 +4,7 @@ use std::{
 };
 
 use eyre::{Context as _, Report, Result};
-use futures_util::{stream::FuturesUnordered, StreamExt as _};
+use futures_util::StreamExt as _;
 use rosu_v2::Osu;
 use tokio::time::{interval, sleep};
 
@@ -239,56 +239,33 @@ impl Context {
             }
         }
 
-        let mut handle_user_result = |user_id, res| {
-            let mut user = match res {
-                Ok(user) => user,
-                Err(err) => {
-                    error!(err = ?Report::new(err), "Failed to request user {user_id} from osu!api");
-
-                    return;
-                }
-            };
-
-            // Process badges if required
-            if check_badges {
-                if let OsuUser::Available(ref mut user) = user {
-                    for badge in user.badges.iter_mut() {
-                        badges_incoming.push(user.user_id, badge, &mut badge_name_buf);
-                    }
-                }
-            }
-
-            users.push(user);
-        };
-
         let jobs = user_ids
             .into_iter()
             .zip(1..)
             .map(async |(user_id, i)| (i, user_id, self.request_osu_user(user_id).await));
 
-        let mut futures = FuturesUnordered::new();
+        const CONCURRENT_USERS: usize = 4;
+
+        let mut stream = futures_util::stream::iter(jobs).buffer_unordered(CONCURRENT_USERS);
 
         // Request osu! user data for all users for all modes.
         // The core loop and very expensive.
-        for job in jobs {
-            const CONCURRENT_USERS: usize = 4;
+        while let Some((i, user_id, res)) = stream.next().await {
+            match res.map_err(Report::new) {
+                Ok(mut user) => {
+                    // Process badges if required
+                    if check_badges {
+                        if let OsuUser::Available(ref mut user) = user {
+                            for badge in user.badges.iter_mut() {
+                                badges_incoming.push(user.user_id, badge, &mut badge_name_buf);
+                            }
+                        }
+                    }
 
-            while futures.len() >= CONCURRENT_USERS {
-                let Some((i, user_id, res)) = futures.next().await else {
-                    continue;
-                };
-
-                handle_user_result(user_id, res);
-
-                self.update_progress(i, len, args, &mut eta, &mut progress)
-                    .await;
+                    users.push(user);
+                }
+                Err(err) => error!(?err, "Failed to request user {user_id} from osu!api"),
             }
-
-            futures.push(job);
-        }
-
-        while let Some((i, user_id, res)) = futures.next().await {
-            handle_user_result(user_id, res);
 
             self.update_progress(i, len, args, &mut eta, &mut progress)
                 .await;
