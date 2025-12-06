@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\nSELECT user_id, description, awarded_at, name\nFROM\n    (SELECT\n        `Badge_ID` AS badge_id, \n        `User_ID` AS user_id, \n        `Description` AS description, \n        `Date_Awarded` AS awarded_at \n    FROM `Badges_Users`) AS u\n    JOIN\n    (SELECT `ID` AS badge_id, `Name` AS name FROM `Badges_Data`) AS n\n    USING (badge_id)",
+  "query": "\n        SELECT user_id, description, awarded_at, name\n        FROM\n            (SELECT\n                `Badge_ID` AS badge_id,\n                `User_ID` AS user_id,\n                `Description` AS description,\n                `Date_Awarded` AS awarded_at\n            FROM `Badges_Users`) AS u\n            JOIN\n            (SELECT `ID` AS badge_id, `Name` AS name FROM `Badges_Data`) AS n\n            USING (badge_id)",
   "describe": {
     "columns": [
       {
@@ -50,5 +50,5 @@
       false
     ]
   },
-  "hash": "39dc3e0568ba2c6c53e6490d9c082ac7d9111e7604c741bf3ddc32b2baa65489"
+  "hash": "1a046a7cfb8e097a50d2d82eec9d49d242c61fbd92bac50fb2d3fbfa7d1ad91b"
 }
