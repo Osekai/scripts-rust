@@ -15,6 +15,7 @@ pub struct Args {
     pub progress: bool,
     pub quiet: bool,
     pub debug: bool,
+    pub requests_per_second: u32,
 }
 
 pub enum ArgsResult {
@@ -32,6 +33,7 @@ impl Args {
             quiet,
             debug,
             task,
+            rate,
             command,
         } = ArgsCli::parse();
 
@@ -51,6 +53,7 @@ impl Args {
             progress,
             quiet,
             debug,
+            requests_per_second: rate,
         };
 
         ArgsResult::Args(args, task)
@@ -78,6 +81,9 @@ struct ArgsCli {
     #[arg(long, action)]
     /// Set this to process only one user
     debug: bool,
+    #[arg(short, long, default_value_t = 10)]
+    /// How many requests to perform per second
+    rate: u32,
     #[arg(short, long)]
     /// Specific task to be run only once (repeatable)
     task: Vec<Task>,

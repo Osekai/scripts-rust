@@ -61,7 +61,9 @@ fn main() {
 async fn async_main(mut args: Args, task: Option<Task>) -> Result<()> {
     config::init(&mut args).context("failed to initialize config")?;
 
-    let ctx = Context::new().await.context("failed to create context")?;
+    let ctx = Context::new(args.requests_per_second)
+        .await
+        .context("failed to create context")?;
 
     tokio::select! {
         _ = run(ctx, args, task) => {},

@@ -29,13 +29,13 @@ pub struct Context {
 }
 
 impl Context {
-    pub async fn new() -> Result<Self> {
+    pub async fn new(requests_per_second: u32) -> Result<Self> {
         let config = Config::get();
 
         let osu = Osu::builder()
             .client_id(config.tokens.osu_client_id)
             .client_secret(&*config.tokens.osu_client_secret)
-            .ratelimit(10)
+            .ratelimit(requests_per_second)
             .build()
             .await
             .context("failed to create osu client")?;
@@ -347,6 +347,7 @@ async fn log_args_delay(task: Option<Task>, args: &Args) {
         interval,
         progress,
         debug: debug_, // tracing::info doesn't like variables called `debug`
+        requests_per_second,
         ..
     } = args;
 
@@ -361,6 +362,7 @@ async fn log_args_delay(task: Option<Task>, args: &Args) {
     }
 
     info!("  - Send progress to osekai while requesting users: {progress}");
+    info!("  - Requests per second: {requests_per_second}");
     info!("  - Additional user ids: {extras:?}");
     info!("  - Debug mode enabled: {debug_}");
     info!("");
