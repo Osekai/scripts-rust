@@ -33,6 +33,7 @@ In case the script runs a schedule, there will be an interval between two execut
 - `--progress` (`-p`): While requesting user data, send progress info to osekai.
 - `--quiet` (`-q`): Don't show any logs.
 - `--debug`: Process only ten users randomly selected from all available ids.
+- `--rate` (`-r`): How many requests to perform per second.
 - `--task` (`-t`): Run only this one task instead of running a schedule in a loop. This can be added multiple times to build a task consisting of multiple flags.
 
 If the subcommand `update` is specified, the script won't run but just check for an update and install it.
