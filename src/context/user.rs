@@ -2,7 +2,7 @@ use std::{collections::HashSet, error::Error};
 
 use eyre::Report;
 use rosu_v2::{
-    prelude::{GameMode, OsuError, Rankings},
+    prelude::{GameMode, OsuError, Rankings, UserExtended},
     OsuResult,
 };
 
@@ -23,27 +23,41 @@ impl Context {
             self.osu.user(user_id).mode(GameMode::Mania),
         );
 
-        macro_rules! handle_res {
-            ($res:ident: $mode:path) => {
-                match $res {
-                    Ok(user) => user,
-                    Err(OsuError::NotFound) => return Ok(OsuUser::Restricted { user_id }),
-                    // Retry on error "http2 error: connection error received: not a result of an error"
-                    // see https://github.com/hyperium/hyper/issues/2500
-                    Err(OsuError::Request { source })
-                        if source.source().is_some_and(|err| err.to_string().starts_with("http2 error")) =>
-                    {
-                        self.osu.user(user_id).mode($mode).await?
-                    }
-                    Err(err) => return Err(err),
+        async fn handle_res(
+            ctx: &Context,
+            res: OsuResult<UserExtended>,
+            mode: GameMode,
+            user_id: u32,
+        ) -> OsuResult<Option<UserExtended>> {
+            match res {
+                Ok(user) => Ok(Some(user)),
+                Err(OsuError::NotFound) => Ok(None),
+                // Retry on error "http2 error: connection error received: not a result of an error"
+                // see https://github.com/hyperium/hyper/issues/2500
+                Err(OsuError::Request { source })
+                    if source
+                        .source()
+                        .is_some_and(|err| err.to_string().starts_with("http2 error")) =>
+                {
+                    ctx.osu.user(user_id).mode(mode).await.map(Some)
+                }
+                Err(err) => Err(err),
+            }
+        }
+
+        macro_rules! get_or_restricted {
+            ( $res:ident, $mode:ident ) => {
+                match handle_res(self, $res, GameMode::$mode, user_id).await? {
+                    Some(user) => user,
+                    None => return Ok(OsuUser::Restricted { user_id }),
                 }
             };
         }
 
-        let std = handle_res!(std_res: GameMode::Osu);
-        let tko = handle_res!(tko_res: GameMode::Taiko);
-        let ctb = handle_res!(ctb_res: GameMode::Catch);
-        let mna = handle_res!(mna_res: GameMode::Mania);
+        let std = get_or_restricted!(std_res, Osu);
+        let tko = get_or_restricted!(tko_res, Taiko);
+        let ctb = get_or_restricted!(ctb_res, Catch);
+        let mna = get_or_restricted!(mna_res, Mania);
 
         Ok(OsuUser::Available(UserFull::new(std, tko, ctb, mna)))
     }
