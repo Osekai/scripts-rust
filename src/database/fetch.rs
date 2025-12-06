@@ -8,7 +8,7 @@ use futures_util::{future, TryStreamExt};
 use time::OffsetDateTime;
 
 use crate::{
-    model::{BadgeDescription, BadgeImageUrl, BadgeName, BadgeOwner, Badges, MedalRarities},
+    model::{BadgeDescription, BadgeImageUrl, BadgeName, BadgeOwner, Badges},
     util::IntHasher,
 };
 
@@ -104,17 +104,17 @@ impl Database {
 
         let query = sqlx::query!(
             r#"
-SELECT user_id, description, awarded_at, name
-FROM
-    (SELECT
-        `Badge_ID` AS badge_id, 
-        `User_ID` AS user_id, 
-        `Description` AS description, 
-        `Date_Awarded` AS awarded_at 
-    FROM `Badges_Users`) AS u
-    JOIN
-    (SELECT `ID` AS badge_id, `Name` AS name FROM `Badges_Data`) AS n
-    USING (badge_id)"#
+        SELECT user_id, description, awarded_at, name
+        FROM
+            (SELECT
+                `Badge_ID` AS badge_id,
+                `User_ID` AS user_id,
+                `Description` AS description,
+                `Date_Awarded` AS awarded_at
+            FROM `Badges_Users`) AS u
+            JOIN
+            (SELECT `ID` AS badge_id, `Name` AS name FROM `Badges_Data`) AS n
+            USING (badge_id)"#
         );
 
         query
@@ -154,57 +154,5 @@ FROM
             .context("failed to fetch badges users")?;
 
         Ok(stored)
-    }
-
-    pub async fn fetch_medal_rarities(&self) -> Result<MedalRarities> {
-        let mut conn = self
-            .acquire()
-            .await
-            .context("failed to acquire connection to fetch medal rarities")?;
-
-        let query = sqlx::query!(
-            r#"
-        SELECT
-          `Medal_ID` as id,
-          `Frequency` as frequency,
-          `Count_Achieved_By` as count
-        FROM
-          Medals_Data"#
-        );
-
-        query
-            .fetch(conn.deref_mut())
-            .map_ok(|row| {
-                (
-                    row.id as u16,
-                    row.count.unwrap_or(0) as u32,
-                    row.frequency.unwrap_or(0.0),
-                )
-            })
-            .try_collect()
-            .await
-            .context("failed to fetch all medal rarities")
-    }
-
-    pub async fn fetch_medal_ids(&self) -> Result<HashSet<u16, IntHasher>> {
-        let mut conn = self
-            .acquire()
-            .await
-            .context("failed to acquire connection to fetch medal ids")?;
-
-        let query = sqlx::query!(
-            r#"
-        SELECT
-          `Medal_ID` as id
-        FROM
-          Medals_Data"#
-        );
-
-        query
-            .fetch(conn.deref_mut())
-            .map_ok(|row| row.id as u16)
-            .try_collect()
-            .await
-            .context("failed to fetch all medal ids")
     }
 }

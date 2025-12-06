@@ -1,4 +1,4 @@
-use std::{fs, time::Duration};
+use std::time::Duration;
 
 use ::bytes::Bytes;
 use eyre::{Context as _, Result};
@@ -55,23 +55,14 @@ impl Client {
 
     /// Requests peppy's webpage and returns its bytes
     pub async fn get_user_webpage(&self) -> Result<Vec<u8>> {
-        // Avoid request spamming while debugging
-        if cfg!(debug_assertions) {
-            debug!("Reading ./peppy.html instead of requesting the webpage");
+        let url = Uri::from_static("https://osu.ppy.sh/users/2/osu");
 
-            fs::read("./peppy.html").context("failed to read `./peppy.html`")
-        } else {
-            let url = Uri::from_static("https://osu.ppy.sh/users/2/osu");
+        let bytes = self
+            .send_get_request(url)
+            .await
+            .context("failed to request user webpage")?;
 
-            let bytes = self
-                .send_get_request(url)
-                .await
-                .context("failed to request user webpage")?;
-
-            // fs::write("./peppy.html", &bytes).unwrap();
-
-            Ok(bytes.into())
-        }
+        Ok(bytes.into())
     }
 
     /// Keep a webhook posted on what the current progress is

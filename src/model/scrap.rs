@@ -8,6 +8,8 @@ pub struct ScrapedUser {
 
 #[derive(Debug, Deserialize)]
 pub struct ScrapedMedal {
+    pub achieved_count: u32,
+    pub achieved_percent: f64,
     pub icon_url: Box<str>,
     pub id: u16,
     pub name: Box<str>,

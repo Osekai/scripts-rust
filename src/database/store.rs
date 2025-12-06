@@ -363,6 +363,8 @@ WHERE
 
             for medal in medals {
                 let ScrapedMedal {
+                    achieved_count: _,
+                    achieved_percent: _,
                     icon_url,
                     id,
                     name,
@@ -515,8 +517,8 @@ WHERE
 
                         let query = sqlx::query!(
                             "
-INSERT INTO `Badges_Users` (`Badge_ID`, `User_ID`, `Description`, `Date_Awarded`)
-VALUES (?, ?, ?, ?)",
+        INSERT INTO `Badges_Users` (`Badge_ID`, `User_ID`, `Description`, `Date_Awarded`)
+        VALUES (?, ?, ?, ?)",
                             badge_id,
                             user_id,
                             description.as_ref(),

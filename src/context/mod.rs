@@ -6,16 +6,13 @@ use std::{
 use eyre::{Context as _, Report, Result};
 use futures_util::{stream::FuturesUnordered, StreamExt as _};
 use rosu_v2::Osu;
-use tokio::{
-    task::JoinHandle,
-    time::{interval, sleep},
-};
+use tokio::time::{interval, sleep};
 
 use crate::{
     client::Client,
     config::Config,
     database::Database,
-    model::{Badges, MedalRarities, OsuUser, Progress, RankingsIter, ScrapedMedal},
+    model::{Badges, MedalRarities, OsuUser, Progress, RankingsIter},
     task::Task,
     util::{Eta, IntHasher, TimeEstimate},
     Args,
@@ -122,22 +119,7 @@ impl Context {
         if task != Task::BADGES {
             match self.request_medals().await {
                 Ok(medals) => {
-                    // Fetch medal ids to see if we received new ones
-                    match self.mysql.fetch_medal_ids().await {
-                        Ok(old_medals) => {
-                            let new_medals: MedalRarities = medals
-                                .iter()
-                                .filter(|medal| !old_medals.contains(&medal.id))
-                                .map(|medal| (medal.id, 0, 0.0))
-                                .collect();
-
-                            // If there are new medals, store their rarities
-                            if !new_medals.is_empty() {
-                                db_handles.push(self.mysql.store_rarities(new_medals));
-                            }
-                        }
-                        Err(err) => error!(?err, "Failed to fetch medal ids from DB"),
-                    };
+                    let rarities = MedalRarities::extract(&medals);
 
                     // Store medals if required
                     if task.medals() {
@@ -146,8 +128,16 @@ impl Context {
                         self.mysql.store_medals(&medals).await;
                     }
 
-                    self.handle_rarities_and_ranking(task, users, &medals, &mut db_handles)
-                        .await;
+                    // Store rarities if required
+                    if task.rarity() {
+                        db_handles.push(self.mysql.store_rarities(rarities.clone()));
+                    }
+
+                    // Calculate and store user rankings if required
+                    if task.ranking() {
+                        let rankings_iter = RankingsIter::new(users, rarities);
+                        db_handles.push(self.mysql.store_rankings(rankings_iter));
+                    }
                 }
                 Err(err) => error!(?err, "Failed to gather medals"),
             }
@@ -169,8 +159,9 @@ impl Context {
         task: Task,
         args: &Args,
     ) -> (Vec<OsuUser>, Badges, Progress) {
-        // If medals are the only thing that should be updated, fetching users is not necessary
-        let mut user_ids = if task != Task::MEDALS {
+        // If medals or rarity is the only thing that should be updated,
+        // fetching users is not necessary
+        let mut user_ids = if !task.consists_of(Task::MEDALS | Task::RARITY) {
             // Otherwise fetch the user ids stored by osekai
             match self.mysql.fetch_osekai_user_ids().await {
                 Ok(users) => users,
@@ -185,7 +176,7 @@ impl Context {
         };
 
         // Retrieve users from the leaderboards if necessary
-        let pages = if task.rarity() {
+        let pages = if task.contains(Task::FULL) {
             Some(200)
         } else if task.ranking() {
             Some(5)
@@ -321,41 +312,6 @@ impl Context {
         (users, badges_incoming, progress)
     }
 
-    async fn handle_rarities_and_ranking(
-        &self,
-        task: Task,
-        users: Vec<OsuUser>,
-        medals: &[ScrapedMedal],
-        db_handles: &mut Vec<JoinHandle<()>>,
-    ) {
-        let rarities = if users.is_empty() {
-            return;
-        } else if task.rarity() {
-            // Leaderboard users were gathered so we can calculate proper rarities
-            Self::calculate_rarities(&users, medals)
-        } else if task.ranking() {
-            // Only osekai users were retrieved, dont calculate rarities
-            // and instead just fetch them from osekai
-            match self.mysql.fetch_medal_rarities().await {
-                Ok(rarities) => rarities,
-                Err(err) => return error!(?err, "Failed to fetch medal rarities from DB"),
-            }
-        } else {
-            return;
-        };
-
-        // Calculate and store user rankings if required
-        if task.ranking() {
-            let rankings_iter = RankingsIter::new(users, rarities.clone());
-            db_handles.push(self.mysql.store_rankings(rankings_iter));
-        }
-
-        // Store rarities if required
-        if task.rarity() {
-            db_handles.push(self.mysql.store_rarities(rarities));
-        }
-    }
-
     async fn update_progress(
         &self,
         i: usize,
@@ -366,7 +322,7 @@ impl Context {
     ) {
         eta.tick();
 
-        if i % Progress::INTERVAL != 0 {
+        if !i.is_multiple_of(Progress::INTERVAL) {
             return;
         }
 

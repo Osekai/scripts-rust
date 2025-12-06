@@ -2,7 +2,9 @@ use std::{num::NonZeroU32, vec::IntoIter};
 
 use time::OffsetDateTime;
 
-use super::{user::ModeStats, MedalRarities, OsuUser};
+use crate::model::MedalRarities;
+
+use super::{user::ModeStats, OsuUser};
 
 pub struct RankingUser {
     pub id: u32,

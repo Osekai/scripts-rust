@@ -1,14 +1,11 @@
-use std::{
-    collections::{hash_map::Iter, HashMap},
-    iter::FromIterator,
-};
+use std::collections::{hash_map::Iter, HashMap};
 
-use crate::util::IntHasher;
+use crate::{model::ScrapedMedal, util::IntHasher};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct MedalRarityEntry {
     pub count: u32,
-    pub frequency: f32,
+    pub frequency: f64,
 }
 
 #[derive(Clone, Default)]
@@ -17,12 +14,26 @@ pub struct MedalRarities {
 }
 
 impl MedalRarities {
-    pub fn get(&self, medal_id: &u16) -> Option<&MedalRarityEntry> {
-        self.inner.get(medal_id)
+    pub fn extract(medals: &[ScrapedMedal]) -> Self {
+        let mut inner = HashMap::with_capacity_and_hasher(500, IntHasher);
+
+        let iter = medals.iter().map(|medal| {
+            (
+                medal.id,
+                MedalRarityEntry {
+                    count: medal.achieved_count,
+                    frequency: medal.achieved_percent,
+                },
+            )
+        });
+
+        inner.extend(iter);
+
+        Self { inner }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
+    pub fn get(&self, medal_id: &u16) -> Option<&MedalRarityEntry> {
+        self.inner.get(medal_id)
     }
 
     pub fn len(&self) -> usize {
@@ -31,31 +42,5 @@ impl MedalRarities {
 
     pub fn iter(&self) -> Iter<'_, u16, MedalRarityEntry> {
         self.inner.iter()
-    }
-}
-
-impl FromIterator<(u16, u32, f32)> for MedalRarities {
-    #[inline]
-    fn from_iter<T: IntoIterator<Item = (u16, u32, f32)>>(iter: T) -> Self {
-        let inner = iter
-            .into_iter()
-            .map(|(medal_id, count, frequency)| {
-                let entry = MedalRarityEntry { count, frequency };
-
-                (medal_id, entry)
-            })
-            .collect();
-
-        Self { inner }
-    }
-}
-
-impl Extend<(u16, u32, f32)> for MedalRarities {
-    fn extend<T: IntoIterator<Item = (u16, u32, f32)>>(&mut self, iter: T) {
-        let iter = iter
-            .into_iter()
-            .map(|(medal_id, count, frequency)| (medal_id, MedalRarityEntry { count, frequency }));
-
-        self.inner.extend(iter)
     }
 }

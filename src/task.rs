@@ -17,13 +17,17 @@ impl Task {
     pub const RARITY: Self =  Self(1 << 2);
     pub const RANKING: Self = Self(1 << 3);
 
-    pub const DEFAULT: Self = Self(Self::MEDALS.0 | Self::RANKING.0);
-    pub const FULL: Self = Self(Self::DEFAULT.0 | Self::BADGES.0 | Self::RARITY.0);
+    pub const DEFAULT: Self = Self(Self::MEDALS.0 | Self::RANKING.0 | Self::RARITY.0);
+    pub const FULL: Self = Self(Self::DEFAULT.0 | Self::BADGES.0);
 }
 
 impl Task {
     pub fn contains(self, other: Self) -> bool {
         self.0 & other.0 == other.0
+    }
+
+    pub fn consists_of(self, other: Self) -> bool {
+        (self.0 & !other.0) == 0
     }
 
     pub fn remove(&mut self, other: Self) {

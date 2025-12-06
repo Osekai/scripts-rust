@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use rosu_v2::prelude::{Badge, MedalCompact, UserExtended, UserStatistics};
 
-use super::MedalRarities;
+use crate::model::MedalRarities;
 
 pub enum OsuUser {
     Available(UserFull),
