@@ -1560,7 +1560,7 @@ checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
 name = "osekai-scripts"
-version = "3.3.0"
+version = "3.4.0"
 dependencies = [
  "axum",
  "bytes",
