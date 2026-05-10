@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -24,7 +25,7 @@ mod webhook;
 
 pub struct Context {
     client: Client,
-    osu: Osu,
+    osu: Arc<Osu>,
     mysql: Database,
 }
 
@@ -32,13 +33,15 @@ impl Context {
     pub async fn new(requests_per_second: u32) -> Result<Self> {
         let config = Config::get();
 
-        let osu = Osu::builder()
-            .client_id(config.tokens.osu_client_id)
-            .client_secret(&*config.tokens.osu_client_secret)
-            .ratelimit(requests_per_second)
-            .build()
-            .await
-            .context("failed to create osu client")?;
+        let osu = Arc::new(
+            Osu::builder()
+                .client_id(config.tokens.osu_client_id)
+                .client_secret(&*config.tokens.osu_client_secret)
+                .ratelimit(requests_per_second)
+                .build()
+                .await
+                .context("failed to create osu client")?,
+        );
 
         let client = Client::new();
 
@@ -73,6 +76,17 @@ impl Context {
         log_args_delay(None, &args).await;
 
         info!("First task starting now...");
+
+        let config = Config::get();
+        let mysql = self.mysql.clone();
+        let osu = self.osu.clone();
+
+        tokio::spawn(crate::server::start_server(
+            osu,
+            mysql,
+            config.server_host.clone(),
+            config.server_port,
+        ));
 
         let duration = Duration::from_secs(args.interval * 60 * 60);
         let mut interval = interval(duration);

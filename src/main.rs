@@ -23,6 +23,7 @@ mod database;
 mod logging;
 mod model;
 mod schedule;
+mod server;
 mod task;
 mod util;
 

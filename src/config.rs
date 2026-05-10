@@ -12,6 +12,8 @@ pub struct Config {
     pub database_url: Box<str>,
     pub webhook_url: Uri,
     pub schedule: Schedule,
+    pub server_host: String,
+    pub server_port: u16,
 }
 
 pub struct Tokens {
@@ -63,6 +65,11 @@ pub fn init(args: &mut Args) -> Result<()> {
             .map_err(|_| eyre!("missing env variable `SCHEDULE`"))?
             .parse()
             .context("failed to parse schedule; must be a comma-separated list of tasks")?,
+        server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+        server_port: env::var("SERVER_PORT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(8080),
     };
 
     CONFIG
