@@ -16,6 +16,14 @@ pub struct ModeStats {
     pub global_rank: Option<NonZeroU32>,
     pub playcount: u32,
     pub pp: f32,
+    pub count_ss: i32,
+    pub count_ssh: i32,
+    pub count_s: i32,
+    pub count_sh: i32,
+    pub count_a: i32,
+    pub total_hits: u64,
+    pub playtime: u32,
+    pub total_score: u64,
 }
 
 impl From<Option<&UserStatistics>> for ModeStats {
@@ -28,6 +36,14 @@ impl From<Option<&UserStatistics>> for ModeStats {
                 global_rank: stats.global_rank.and_then(NonZeroU32::new),
                 playcount: stats.playcount,
                 pp: stats.pp,
+                count_ss: stats.grade_counts.ss,
+                count_ssh: stats.grade_counts.ssh,
+                count_s: stats.grade_counts.s,
+                count_sh: stats.grade_counts.sh,
+                count_a: stats.grade_counts.a,
+                total_hits: stats.total_hits,
+                playtime: stats.playtime,
+                total_score: stats.total_score,
             },
             None => Self::default(),
         }
@@ -45,6 +61,7 @@ pub struct UserFull {
     pub subscribers: u32,
     pub user_id: u32,
     pub username: Box<str>,
+    pub kudosu_total: i32,
 }
 
 impl UserFull {
@@ -57,6 +74,7 @@ impl UserFull {
         let subscribers = std.mapping_follower_count.unwrap_or(0);
         let user_id = std.user_id;
         let username = std.username.into_string().into_boxed_str();
+        let kudosu_total = std.kudosu.total;
 
         let std = std.statistics.as_ref();
         let tko = tko.statistics.as_ref();
@@ -79,6 +97,7 @@ impl UserFull {
             subscribers,
             user_id,
             username,
+            kudosu_total,
         }
     }
 
