@@ -20,6 +20,7 @@ pub struct RankingUser {
     pub subscribers: u32,
     pub replays_watched: u32,
     pub restricted: bool,
+    pub kudosu_total: i32,
     pub std: RankingMode,
     pub tko: RankingMode,
     pub ctb: RankingMode,
@@ -68,6 +69,7 @@ impl RankingUser {
                     subscribers: user.subscribers,
                     replays_watched: user.replays_watched,
                     restricted: false,
+                    kudosu_total: user.kudosu_total,
                     std: RankingMode::from(std),
                     tko: RankingMode::from(tko),
                     ctb: RankingMode::from(ctb),
@@ -88,6 +90,7 @@ impl RankingUser {
                 loved_maps: Default::default(),
                 subscribers: Default::default(),
                 replays_watched: Default::default(),
+                kudosu_total: Default::default(),
                 std: Default::default(),
                 tko: Default::default(),
                 ctb: Default::default(),
@@ -148,6 +151,15 @@ pub struct RankingMode {
     pub global_rank: Option<NonZeroU32>,
     pub level: f32,
     pub pp: f32,
+    pub count_ss: i32,
+    pub count_ssh: i32,
+    pub count_s: i32,
+    pub count_sh: i32,
+    pub count_a: i32,
+    pub total_hits: u64,
+    pub playtime: u32,
+    pub playcount: u32,
+    pub total_score: u64,
 }
 
 impl From<ModeStats> for RankingMode {
@@ -157,6 +169,15 @@ impl From<ModeStats> for RankingMode {
             global_rank: stats.global_rank,
             level: stats.level,
             pp: stats.pp,
+            count_ss: stats.count_ss,
+            count_ssh: stats.count_ssh,
+            count_s: stats.count_s,
+            count_sh: stats.count_sh,
+            count_a: stats.count_a,
+            total_hits: stats.total_hits,
+            playtime: stats.playtime,
+            playcount: stats.playcount,
+            total_score: stats.total_score,
         }
     }
 }
